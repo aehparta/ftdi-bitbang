@@ -77,7 +77,7 @@ copy_binpkg_files()
 		cp $ROOT/src/$PACKAGE_NAME.pc $PKGDIR/usr/lib/pkgconfig
 	fi
 
-    cp $ROOT/man/ftdi-hd44780.1 $PKGDIR/usr/share/man/man1
+    cp $ROOT/man/ftdi-bitbang.1 $PKGDIR/usr/share/man/man1
 
 	set +e
 }

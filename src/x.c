@@ -1,5 +1,5 @@
 /*
- * ftdi-hd44780
+ * ftdi-bitbang
  *
  * License: MIT
  * Authors: Antti Partanen <aehparta@iki.fi>

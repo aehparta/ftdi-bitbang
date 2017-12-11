@@ -1,5 +1,5 @@
 /*
- * ftdi-hd44780
+ * ftdi-bitbang
  *
  * License: MIT
  * Authors: Antti Partanen <aehparta@iki.fi>
@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
-#include "ftdi-hd44780.h"
+#include "ftdi-bitbang.h"
 
 const char opts[] = "hi:n4:5:6:7:e:r:s:cmt:l:";
 struct option longopts[] = {
@@ -43,7 +43,7 @@ int rw = 5;
 int rs = 6;
 
 struct ftdi_context *ftdi = NULL;
-struct ftdi_hd44780_dev *device = NULL;
+struct ftdi_bitbang_dev *device = NULL;
 
 int clear = 0;
 int home = 0;
@@ -59,7 +59,7 @@ int line = -1;
 void p_exit(int return_code)
 {
 	if (device) {
-		ftdi_hd44780_free(device);
+		ftdi_bitbang_free(device);
 	}
 	if (ftdi) {
 		ftdi_usb_close(ftdi);
@@ -180,9 +180,9 @@ int p_init(int argc, char *argv[])
 		return -1;
 	}
 
-	device = ftdi_hd44780_init(ftdi, reset, d4, d5, d6, d7, en, rw, rs);
+	device = ftdi_bitbang_init(ftdi, reset, d4, d5, d6, d7, en, rw, rs);
 	if (!device) {
-		fprintf(stderr, "ftdi_hd44780_init() failed\n");
+		fprintf(stderr, "ftdi_bitbang_init() failed\n");
 		return -1;
 	}
 
@@ -200,16 +200,16 @@ int main(int argc, char *argv[])
 	}
 
 	if (clear) {
-		ftdi_hd44780_cmd(device, 0x01);
+		ftdi_bitbang_cmd(device, 0x01);
 	}
 	if (home) {
-		ftdi_hd44780_cmd(device, 0x02);
+		ftdi_bitbang_cmd(device, 0x02);
 	}
 	if (line >= 0 && line <= 3) {
-		ftdi_hd44780_goto_xy(device, 0, line);
+		ftdi_bitbang_goto_xy(device, 0, line);
 	}
 	if (text) {
-		ftdi_hd44780_write_str(device, text);
+		ftdi_bitbang_write_str(device, text);
 	}
 
 	p_exit(EXIT_SUCCESS);
