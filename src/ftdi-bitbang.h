@@ -29,5 +29,7 @@ int ftdi_bitbang_set_io(struct ftdi_bitbang_dev *dev, int bit, int io);
 
 int ftdi_bitbang_write(struct ftdi_bitbang_dev *dev);
 
+int ftdi_bitbang_read(struct ftdi_bitbang_dev *dev);
+
 
 #endif /* __FTDI_bitbang_H__ */

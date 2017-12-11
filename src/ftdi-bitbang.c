@@ -37,12 +37,16 @@ struct ftdi_bitbang_dev *ftdi_bitbang_init(struct ftdi_context *ftdi)
 		return NULL;
 	}
 	memset(dev, 0, sizeof(*dev));
+	dev->l_changed = 0xff;
+	dev->h_changed = 0xff;
 
 	/* save args */
 	dev->ftdi = ftdi;
 
 	/* set bitmode to mpsse */
-	ftdi_set_bitmode(ftdi, 0x00, BITMODE_MPSSE);
+	if (ftdi_set_bitmode(ftdi, 0x00, BITMODE_MPSSE) != 0) {
+		return NULL;
+	}
 
 	return dev;
 }
@@ -86,7 +90,7 @@ int ftdi_bitbang_set_io(struct ftdi_bitbang_dev *dev, int bit, int io)
 
 int ftdi_bitbang_write(struct ftdi_bitbang_dev *dev)
 {
-	char buf[6];
+	uint8_t buf[6];
 	int n = 0;
 	if (dev->l_changed) {
 		buf[n++] = 0x80;
@@ -102,4 +106,14 @@ int ftdi_bitbang_write(struct ftdi_bitbang_dev *dev)
 	}
 	ftdi_write_data(dev->ftdi, buf, n);
 	return 0;
+}
+
+int ftdi_bitbang_read(struct ftdi_bitbang_dev *dev)
+{
+	uint8_t buf[2] = { 0x81, 0x83 };
+	ftdi_write_data(dev->ftdi, &buf[0], 1);
+	ftdi_read_data(dev->ftdi, &buf[0], 1);
+	ftdi_write_data(dev->ftdi, &buf[1], 1);
+	ftdi_read_data(dev->ftdi, &buf[1], 1);
+	return (int)(buf[0] | (buf[1] << 8));
 }

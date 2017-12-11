@@ -11,18 +11,21 @@
 #include <getopt.h>
 #include "ftdi-bitbang.h"
 
-const char opts[] = "hi:1:0:";
+const char opts[] = "hi:1:0:r";
 struct option longopts[] = {
 	{ "help", no_argument, NULL, 'h' },
 	{ "interface", required_argument, NULL, 'i' },
 	{ "one", required_argument, NULL, '1' },
 	{ "zero", required_argument, NULL, '0' },
+	{ "read", no_argument, NULL, 'r' },
 	{ 0, 0, 0, 0 },
 };
 
 uint16_t vid = 0x0403;
 uint16_t pid = 0x6010;
 int interface = INTERFACE_ANY;
+int read_pins = 0;
+int pins[16];
 
 struct ftdi_context *ftdi = NULL;
 struct ftdi_bitbang_dev *device = NULL;
@@ -78,9 +81,7 @@ int p_options(int argc, char *argv[])
 				p_help();
 				p_exit(1);
 			} else {
-				/* set as output and zero */
-				ftdi_bitbang_set_io(device, pin, 1);
-				ftdi_bitbang_set_pin(device, pin, 0);
+				pins[pin] = 0;
 			}
 			break;
 		case '1':
@@ -90,10 +91,11 @@ int p_options(int argc, char *argv[])
 				p_help();
 				p_exit(1);
 			} else {
-				/* set as output and one */
-				ftdi_bitbang_set_io(device, pin, 1);
-				ftdi_bitbang_set_pin(device, pin, 1);
+				pins[pin] = 1;
 			}
+			break;
+		case 'r':
+			read_pins = 1;
 			break;
 		default:
 		case '?':
@@ -118,11 +120,27 @@ out_err:
 int p_init(int argc, char *argv[])
 {
 	int err = 0;
+	int i;
+
+	for (i = 0; i < 16; i++) {
+		pins[i] = -1;
+	}
+
+	/* parse command line options */
+	if (p_options(argc, argv)) {
+		fprintf(stderr, "invalid command line options\n");
+		return -1;
+	}
 
 	/* initialize ftdi */
 	ftdi = ftdi_new();
 	if (!ftdi) {
 		fprintf(stderr, "ftdi_new() failed\n");
+		return -1;
+	}
+	err = ftdi_set_interface(ftdi, interface);
+	if (err < 0) {
+		fprintf(stderr, "unable to set selected interface on ftdi device: %d (%s)\n", err, ftdi_get_error_string(ftdi));
 		return -1;
 	}
 	err = ftdi_usb_open(ftdi, vid, pid);
@@ -137,20 +155,23 @@ int p_init(int argc, char *argv[])
 		return -1;
 	}
 
-	/* parse command line options */
-	if (p_options(argc, argv)) {
-		fprintf(stderr, "invalid command line options\n");
-		return -1;
-	}
-
-	err = ftdi_set_interface(ftdi, interface);
-	if (err < 0) {
-		fprintf(stderr, "unable to set selected interface on ftdi device: %d (%s)\n", err, ftdi_get_error_string(ftdi));
-		return -1;
-	}
-
 	/* write changes */
+	for (i = 0; i < 16; i++) {
+		if (pins[i] > -1) {
+			ftdi_bitbang_set_io(device, i, 1);
+			ftdi_bitbang_set_pin(device, i, pins[i] ? 1 : 0);
+		} else {
+			ftdi_bitbang_set_io(device, i, 0);
+			ftdi_bitbang_set_pin(device, i, 0);
+		}
+	}
 	ftdi_bitbang_write(device);
+
+	/* read pins */
+	if (read_pins) {
+		int pins = ftdi_bitbang_read(device);
+		printf("%4x\n", pins);
+	}
 
 	return 0;
 }
