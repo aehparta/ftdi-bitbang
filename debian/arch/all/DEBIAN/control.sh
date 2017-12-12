@@ -8,4 +8,5 @@ Maintainer: $PACKAGE_AUTHORS
 Package: $PACKAGE_NAME
 Architecture: $PACKAGE_ARCH
 Description: $PACKAGE_DESC
+Depends: libftdi1-2
 "

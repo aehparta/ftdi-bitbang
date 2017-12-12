@@ -12,6 +12,6 @@ includedir=$includedir
 Name: $PACKAGE_NAME
 Description: $PACKAGE_DESC
 Version: $PACKAGE_VERSION
-Libs:
-Cflags:
+Libs: -lftdi1 -lusb
+Cflags: 
 "

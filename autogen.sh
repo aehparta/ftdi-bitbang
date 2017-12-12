@@ -15,8 +15,8 @@ PACKAGE_VERSION_MICRO="0"
 PACKAGE_VERSION="$PACKAGE_VERSION_MAJOR.$PACKAGE_VERSION_MINOR.$PACKAGE_VERSION_MICRO"
 
 # binaries/libraries to install
-PACKAGE_BINS="ftdi-bitbang"
-PACKAGE_LIBS="libftdi-bitbang"
+PACKAGE_BINS="ftdi-bitbang ftdi-hd44780"
+PACKAGE_LIBS="libftdi-bitbang libftdi-hd44780"
 
 # get build number
 PACKAGE_BUILD=`cat debian/build`
@@ -27,7 +27,7 @@ LIBSADD=""
 BINSCHECK="pkg-config:--version"
 
 # include headers when making package
-PACKAGE_HEADERS="ftdi-bitbang.h"
+PACKAGE_HEADERS="ftdi-bitbang.h ftdi-hd44780.h"
 
 
 # check binaries
