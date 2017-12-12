@@ -9,16 +9,19 @@
 #define __FTDI_bitbang_H__
 
 #include <stdlib.h>
-#include <ftdi.h>
+#include <libftdi1/ftdi.h>
 
-struct ftdi_bitbang_dev {
-	struct ftdi_context *ftdi;
+struct ftdi_bitbang_state {
 	uint8_t l_value;
 	uint8_t l_changed;
 	uint8_t l_io;
 	uint8_t h_value;
 	uint8_t h_changed;
 	uint8_t h_io;
+};
+struct ftdi_bitbang_dev {
+	struct ftdi_context *ftdi;
+	struct ftdi_bitbang_state state;
 };
 
 struct ftdi_bitbang_dev *ftdi_bitbang_init(struct ftdi_context *ftdi);
@@ -28,8 +31,10 @@ int ftdi_bitbang_set_pin(struct ftdi_bitbang_dev *dev, int bit, int value);
 int ftdi_bitbang_set_io(struct ftdi_bitbang_dev *dev, int bit, int io);
 
 int ftdi_bitbang_write(struct ftdi_bitbang_dev *dev);
-
 int ftdi_bitbang_read(struct ftdi_bitbang_dev *dev);
+
+int ftdi_bitbang_load_state(struct ftdi_bitbang_dev *dev);
+int ftdi_bitbang_save_state(struct ftdi_bitbang_dev *dev);
 
 
 #endif /* __FTDI_bitbang_H__ */
