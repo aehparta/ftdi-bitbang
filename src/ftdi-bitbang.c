@@ -19,22 +19,6 @@
 #include <libusb-1.0/libusb.h>
 #include "ftdi-bitbang.h"
 
-static long double _os_time()
-{
-	struct timespec tp;
-	clock_gettime(CLOCK_MONOTONIC, &tp);
-	return (long double)((long double)tp.tv_sec + (long double)tp.tv_nsec / 1e9);
-}
-
-static void _os_sleep(long double t)
-{
-	struct timespec tp;
-	long double integral;
-	t += _os_time();
-	tp.tv_nsec = (long)(modfl(t, &integral) * 1e9);
-	tp.tv_sec = (time_t)integral;
-	while (clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tp, NULL) == EINTR);
-}
 
 struct ftdi_bitbang_dev *ftdi_bitbang_init(struct ftdi_context *ftdi)
 {
