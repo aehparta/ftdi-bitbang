@@ -1,4 +1,5 @@
 # ftdi-bitbang
+Simple command line bitbang interface to FTDI FTx232 chips.
 ```
 Usage:
  ftdi-bitbang [options]
@@ -24,12 +25,11 @@ Options:
                              multiple -s, -c and -i options can be given
   -r, --read                 read pin states, output hexadecimal word
       --read=PIN             read single pin, output binary 0 or 1
-
-Simple command line bitbang interface to FTDI FTx232 chips.
 ```
 
 
 # ftdi-control
+Basic control and eeprom routines for FTDI FTx232 chips.
 ```
 Usage:
  ftdi-control [options]
@@ -57,12 +57,11 @@ Options:
   -d, --ee-description=STRING
                              write description (product) string
   -s, --ee-serial=STRING     write serial string
-
-Basic control and eeprom routines for FTDI FTx232 chips.
 ```
 
 
 # ftdi-hd44780
+Use HD44780 based LCD displays in 4-bit mode through FTDI FTx232 chips with this command.
 ```
 Usage:
  ftdi-hd44780 [options]
@@ -97,6 +96,4 @@ Options:
   -c, --cursor=VALUE         cursor on/off and blink, accepts value between 0-3
   -t, --text=STRING          write given text to display
   -l, --line=VALUE           move cursor to given line, value between 0-3
-
-Use HD44780 based LCD displays in 4-bit mode through FTDI FTx232 chips with this command.
 ```
