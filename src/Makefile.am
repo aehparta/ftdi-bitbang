@@ -19,7 +19,7 @@ ftdi_bitbang_LDFLAGS = -lftdi-bitbang @libftdi1_LIBS@
 ftdi_bitbang_CFLAGS = @libftdi1_CFLAGS@
 ftdi_hd44780_LDFLAGS = -lftdi-bitbang -lftdi-hd44780 @libftdi1_LIBS@
 ftdi_hd44780_CFLAGS = @libftdi1_CFLAGS@
-ftdi_control_LDFLAGS = @libftdi1_LIBS@
+ftdi_control_LDFLAGS = -lftdi-bitbang @libftdi1_LIBS@
 ftdi_control_CFLAGS = @libftdi1_CFLAGS@
 
 include_HEADERS = ftdi-bitbang.h ftdi-hd44780.h
