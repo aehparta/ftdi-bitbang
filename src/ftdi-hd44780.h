@@ -31,13 +31,10 @@ void ftdi_hd44780_free(struct ftdi_hd44780_dev *dev);
 
 int ftdi_hd44780_cmd(struct ftdi_hd44780_dev *dev, uint8_t command);
 int ftdi_hd44780_write_data(struct ftdi_hd44780_dev *dev, uint8_t data);
+int ftdi_hd44780_write_char(struct ftdi_hd44780_dev *dev, char ch);
 int ftdi_hd44780_write_str(struct ftdi_hd44780_dev *dev, char *str);
 
-int ftdi_hd44780_set_pin(struct ftdi_hd44780_dev *dev, int bit, int value);
-int ftdi_hd44780_set_io(struct ftdi_hd44780_dev *dev, int bit, int io);
-
 int ftdi_hd44780_goto_xy(struct ftdi_hd44780_dev *dev, int x, int y);
-
 int ftdi_hd44780_set_line_width(struct ftdi_hd44780_dev *dev, int line_width);
 
 
