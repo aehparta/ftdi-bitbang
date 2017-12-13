@@ -1,3 +1,12 @@
+# Contents
+## Command line tools
+* ftdi-bitbang
+* ftdi-control
+* ftdi-hd44780
+## Libraries
+* libftdi-bitbang
+* libftdi-hd44780
+
 # ftdi-bitbang
 Simple command line bitbang interface to FTDI FTx232 chips.
 ```
