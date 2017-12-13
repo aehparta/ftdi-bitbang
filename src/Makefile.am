@@ -1,10 +1,11 @@
-## Makefile.am for ftdi-bitbang
+## Makefile.am for ftdi-something libs and commands
 
-bin_PROGRAMS = ftdi-bitbang ftdi-hd44780
+bin_PROGRAMS = ftdi-bitbang ftdi-hd44780 ftdi-control
 lib_LTLIBRARIES = libftdi-bitbang.la libftdi-hd44780.la
 
 ftdi_bitbang_SOURCES = cmd-bitbang.c
 ftdi_hd44780_SOURCES = cmd-hd44780.c
+ftdi_control_SOURCES = cmd-control.c
 
 libftdi_bitbang_la_SOURCES = ftdi-bitbang.c
 libftdi_bitbang_la_LDFLAGS = @libftdi1_LIBS@
@@ -18,6 +19,8 @@ ftdi_bitbang_LDFLAGS = -lftdi-bitbang @libftdi1_LIBS@
 ftdi_bitbang_CFLAGS = @libftdi1_CFLAGS@
 ftdi_hd44780_LDFLAGS = -lftdi-bitbang -lftdi-hd44780 @libftdi1_LIBS@
 ftdi_hd44780_CFLAGS = @libftdi1_CFLAGS@
+ftdi_control_LDFLAGS = @libftdi1_LIBS@
+ftdi_control_CFLAGS = @libftdi1_CFLAGS@
 
 include_HEADERS = ftdi-bitbang.h ftdi-hd44780.h
 
