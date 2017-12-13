@@ -8,22 +8,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <getopt.h>
-#include <errno.h>
 #include <libftdi1/ftdi.h>
 #include "ftdi-bitbang.h"
 #include "ftdi-hd44780.h"
 #include "cmd-common.h"
 
-const char opts[] = "hV:P:D:S:I:R4:5:6:7:e:r:s:b:CMc:t:l:";
+const char opts[] = COMMON_SHORT_OPTS "i4:5:6:7:e:r:s:b:CMc:t:l:";
 struct option longopts[] = {
-	{ "help", no_argument, NULL, 'h' },
-	{ "vid", required_argument, NULL, 'V' },
-	{ "pid", required_argument, NULL, 'P' },
-	{ "description", required_argument, NULL, 'D' },
-	{ "serial", required_argument, NULL, 'S' },
-	{ "interface", required_argument, NULL, 'I' },
-	{ "reset", no_argument, NULL, 'R' },
+	COMMON_LONG_OPTS
+	{ "init", no_argument, NULL, 'i' },
 	{ "d4", required_argument, NULL, '4' },
 	{ "d5", required_argument, NULL, '5' },
 	{ "d6", required_argument, NULL, '6' },
@@ -40,18 +33,7 @@ struct option longopts[] = {
 	{ 0, 0, 0, 0 },
 };
 
-/* usb vid */
-uint16_t usb_vid = 0;
-/* usb pid */
-uint16_t usb_pid = 0;
-/* usb description */
-const char *usb_description = NULL;
-/* usb serial */
-const char *usb_serial = NULL;
-/* interface (defaults to first one) */
-int interface = INTERFACE_ANY;
-
-int reset = 0;
+int init = 0;
 int d4 = 0;
 int d5 = 1;
 int d6 = 2;
@@ -60,6 +42,7 @@ int en = 4;
 int rw = 5;
 int rs = 6;
 
+/* ftdi device context */
 struct ftdi_context *ftdi = NULL;
 struct ftdi_bitbang_dev *device = NULL;
 struct ftdi_hd44780_dev *hd44780 = NULL;
@@ -100,118 +83,88 @@ void p_exit(int return_code)
 	exit(return_code);
 }
 
-/**
- * Print commandline help.
- */
-void p_help(void)
+void p_help()
 {
 	printf(
-	    "No help available.\n"
+	    "  -i, --init                 initialize hd44780 lcd, usually needed only once at first\n"
+	    "  -4, --d4=PIN               data pin 4, default pin is 0\n"
+	    "  -5, --d5=PIN               data pin 5, default pin is 1\n"
+	    "  -6, --d6=PIN               data pin 6, default pin is 2\n"
+	    "  -7, --d7=PIN               data pin 7, default pin is 3\n"
+	    "  -e, --en=PIN               enable pin, default pin is 4\n"
+	    "  -r, --rw=PIN               read/write pin, default pin is 5\n"
+	    "  -s, --rs=PIN               register select pin, default pin is 6\n"
+	    "  -b, --command=BYTE         send raw hd44780 command, decimal or hexadecimal (0x) byte\n"
+	    "                             multiple commands can be given, they are run before any later commands described here\n"
+	    "  -C, --clear                clear display\n"
+	    "  -M, --home                 move cursor home\n"
+	    "  -c, --cursor=VALUE         cursor on/off and blink, accepts value between 0-3\n"
+	    "  -t, --text=STRING          write given text to display\n"
+	    "  -l, --line=VALUE           move cursor to given line, value between 0-3\n"
+	    "\n"
+	    "Use HD44780 based LCD displays in 4-bit mode through FTDI FTx232 chips with this command.\n"
 	    "\n");
 }
 
-/**
- * Print commandline help.
- */
-int p_options(int argc, char *argv[])
-{
-	int err = 0, i;
-	int longindex = 0, c;
 
-	while ((c = getopt_long(argc, argv, opts, longopts, &longindex)) > -1) {
-		switch (c) {
-		case 'V':
-			i = (int)strtol(optarg, NULL, 16);
-			if (errno == ERANGE || i < 0 || i > 0xffff) {
-				fprintf(stderr, "invalid usb vid value\n");
-				p_exit(1);
-			}
-			usb_vid = (uint16_t)i;
-			break;
-		case 'P':
-			i = (int)strtol(optarg, NULL, 16);
-			if (errno == ERANGE || i < 0 || i > 0xffff) {
-				fprintf(stderr, "invalid usb pid value\n");
-				p_exit(1);
-			}
-			usb_pid = (uint16_t)i;
-			break;
-		case 'D':
-			usb_description = strdup(optarg);
-			break;
-		case 'S':
-			usb_serial = strdup(optarg);
-			break;
-		case 'I':
-			interface = atoi(optarg);
-			if (interface < 0 || interface > 4) {
-				fprintf(stderr, "invalid interface\n");
-				p_exit(1);
-			}
-			break;
-		case 'R':
-			reset = 1;
-			break;
-		case '4':
-			d4 = atoi(optarg);
-			break;
-		case '5':
-			d5 = atoi(optarg);
-			break;
-		case '6':
-			d6 = atoi(optarg);
-			break;
-		case '7':
-			d7 = atoi(optarg);
-			break;
-		case 'e':
-			en = atoi(optarg);
-			break;
-		case 'r':
-			rw = atoi(optarg);
-			break;
-		case 's':
-			rs = atoi(optarg);
-			break;
-		case 'b':
-			commands_count++;
-			commands = realloc(commands, commands_count);
-			commands[commands_count - 1] = (uint8_t)strtol(optarg, NULL, 0);
-			break;
-		case 'C':
-			clear = 1;
-			break;
-		case 'M':
-			home = 1;
-			break;
-		case 'c':
-			cursor = atoi(optarg);
-			if (cursor < 0 || cursor > 3) {
-				fprintf(stderr, "invalid cursor\n");
-				p_exit(1);
-			}
-			break;
-		case 't':
-			text = strdup(optarg);
-			break;
-		case 'l':
-			line = atoi(optarg);
-			if (line < 0 || line > 3) {
-				fprintf(stderr, "invalid line\n");
-				p_exit(1);
-			}
-			break;
-		default:
-		case '?':
-		case 'h':
-			printf("%d\n", c);
-			p_help();
+int p_options(int c, char *optarg)
+{
+	switch (c) {
+	case 'i':
+		init = 1;
+		return 1;
+	case '4':
+		d4 = atoi(optarg);
+		return 1;
+	case '5':
+		d5 = atoi(optarg);
+		return 1;
+	case '6':
+		d6 = atoi(optarg);
+		return 1;
+	case '7':
+		d7 = atoi(optarg);
+		return 1;
+	case 'e':
+		en = atoi(optarg);
+		return 1;
+	case 'r':
+		rw = atoi(optarg);
+		return 1;
+	case 's':
+		rs = atoi(optarg);
+		return 1;
+	case 'b':
+		commands_count++;
+		commands = realloc(commands, commands_count);
+		commands[commands_count - 1] = (uint8_t)strtol(optarg, NULL, 0);
+		return 1;
+	case 'C':
+		clear = 1;
+		return 1;
+	case 'M':
+		home = 1;
+		return 1;
+	case 'c':
+		cursor = atoi(optarg);
+		if (cursor < 0 || cursor > 3) {
+			fprintf(stderr, "invalid cursor\n");
 			p_exit(1);
 		}
+		return 1;
+	case 't':
+		text = strdup(optarg);
+		return 1;
+	case 'l':
+		line = atoi(optarg);
+		if (line < 0 || line > 3) {
+			fprintf(stderr, "invalid line\n");
+			p_exit(1);
+		}
+		return 1;
 	}
 
-out_err:
-	return err;
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -219,13 +172,13 @@ int main(int argc, char *argv[])
 	int err = 0, i;
 
 	/* parse command line options */
-	if (p_options(argc, argv)) {
-		fprintf(stderr, "invalid command line options\n");
+	if (common_options(argc, argv, opts, longopts)) {
+		fprintf(stderr, "invalid command line option(s)\n");
 		p_exit(EXIT_FAILURE);
 	}
 
 	/* init ftdi things */
-	ftdi = cmd_init(usb_vid, usb_pid, usb_description, usb_serial, interface);
+	ftdi = common_ftdi_init();
 	if (!ftdi) {
 		p_exit(EXIT_FAILURE);
 	}
@@ -239,7 +192,7 @@ int main(int argc, char *argv[])
 	ftdi_bitbang_load_state(device);
 
 	/* initialize hd44780 */
-	hd44780 = ftdi_hd44780_init(device, reset, d4, d5, d6, d7, en, rw, rs);
+	hd44780 = ftdi_hd44780_init(device, init, d4, d5, d6, d7, en, rw, rs);
 	if (!hd44780) {
 		fprintf(stderr, "ftdi_hd44780_init() failed\n");
 		return -1;

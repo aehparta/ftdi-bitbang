@@ -8,46 +8,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <getopt.h>
-#include <errno.h>
 #include <libusb-1.0/libusb.h>
 #include <libftdi1/ftdi.h>
 #include "ftdi-bitbang.h"
 #include "cmd-common.h"
 
-const char opts[] = "hV:P:D:S:I:RENom:d:s:";
+const char opts[] = COMMON_SHORT_OPTS "RENom:d:s:";
 struct option longopts[] = {
-	{ "help", no_argument, NULL, 'h' },
-	{ "vid", required_argument, NULL, 'V' },
-	{ "pid", required_argument, NULL, 'P' },
-	{ "description", required_argument, NULL, 'D' },
-	{ "serial", required_argument, NULL, 'S' },
-	{ "interface", required_argument, NULL, 'I' },
-	{ "reset", no_argument, NULL, 'R' },
-	{ "eeprom-erase", no_argument, NULL, 'E' },
-	{ "eeprom-initialize", no_argument, NULL, 'N' },
-	{ "eeprom-decode", no_argument, NULL, 'o' },
-	{ "set-manufacturer", required_argument, NULL, 'm' },
-	{ "set-description", required_argument, NULL, 'd' },
-	{ "set-serial", required_argument, NULL, 's' },
+	COMMON_LONG_OPTS
+	{ "ee-erase", no_argument, NULL, 'E' },
+	{ "ee-init", no_argument, NULL, 'N' },
+	{ "ee-decode", no_argument, NULL, 'o' },
+	{ "ee-manufacturer", required_argument, NULL, 'm' },
+	{ "ee-description", required_argument, NULL, 'd' },
+	{ "ee-serial", required_argument, NULL, 's' },
 	{ 0, 0, 0, 0 },
 };
 
-/* usb vid */
-uint16_t usb_vid = 0;
-/* usb pid */
-uint16_t usb_pid = 0;
-/* usb description */
-const char *usb_description = NULL;
-/* usb serial */
-const char *usb_serial = NULL;
-/* interface (defaults to first one) */
-int interface = INTERFACE_ANY;
 /* ftdi device context */
 struct ftdi_context *ftdi = NULL;
 
-/* if device should be reset at start */
-int reset = 0;
 /* if eeprom should be erased first */
 int ee_erase = 0;
 /* initialize eeprom to default values, erases eeprom */
@@ -87,96 +67,55 @@ void p_exit(int return_code)
 	exit(return_code);
 }
 
-/**
- * Print commandline help.
- */
-void p_help(void)
+void p_help()
 {
 	printf(
-	    "No help available.\n"
+	    "  -E, --ee-erase             erase eeprom, sometimes needed if eeprom has already been initialized\n"
+	    "  -N, --ee-init              erase and initialize eeprom with defaults\n"
+	    "  -o, --ee-decode            read eeprom and print decoded information\n"
+	    "  -m, --ee-manufacturer=STRING\n"
+	    "                             write manufacturer string\n"
+	    "  -d, --ee-description=STRING\n"
+	    "                             write description (product) string\n"
+	    "  -s, --ee-serial=STRING     write serial string\n"
+	    "\n"
+	    "Basic control and eeprom routines for FTDI FTx232 chips.\n"
 	    "\n");
 }
 
-/**
- * Print commandline help.
- */
-int p_options(int argc, char *argv[])
+int p_options(int c, char *optarg)
 {
-	int err = 0;
-	int longindex = 0, c;
-	int i;
-
-	while ((c = getopt_long(argc, argv, opts, longopts, &longindex)) > -1) {
-		switch (c) {
-		case 'V':
-			i = (int)strtol(optarg, NULL, 16);
-			if (errno == ERANGE || i < 0 || i > 0xffff) {
-				fprintf(stderr, "invalid usb vid value\n");
-				p_exit(1);
-			}
-			usb_vid = (uint16_t)i;
-			break;
-		case 'P':
-			i = (int)strtol(optarg, NULL, 16);
-			if (errno == ERANGE || i < 0 || i > 0xffff) {
-				fprintf(stderr, "invalid usb pid value\n");
-				p_exit(1);
-			}
-			usb_pid = (uint16_t)i;
-			break;
-		case 'D':
-			usb_description = strdup(optarg);
-			break;
-		case 'S':
-			usb_serial = strdup(optarg);
-			break;
-		case 'I':
-			interface = atoi(optarg);
-			if (interface < 0 || interface > 4) {
-				fprintf(stderr, "invalid interface\n");
-				p_exit(1);
-			}
-			break;
-		case 'R':
-			reset = 1;
-			break;
-		case 'E':
-			ee_erase = 1;
-			break;
-		case 'N':
-			ee_erase = 1;
-			ee_initialize = 1;
-			ee_wr = 1;
-			break;
-		case 'o':
-			ee_decode = 1;
-			ee_rd = 1;
-			break;
-		case 'm':
-			set_manufacturer = strdup(optarg);
-			ee_rd = 1;
-			ee_wr = 1;
-			break;
-		case 'd':
-			set_description = strdup(optarg);
-			ee_rd = 1;
-			ee_wr = 1;
-			break;
-		case 's':
-			set_serial = strdup(optarg);
-			ee_rd = 1;
-			ee_wr = 1;
-			break;
-		default:
-		case '?':
-		case 'h':
-			p_help();
-			p_exit(1);
-		}
+	switch (c) {
+	case 'E':
+		ee_erase = 1;
+		return 1;
+	case 'N':
+		ee_erase = 1;
+		ee_initialize = 1;
+		ee_wr = 1;
+		return 1;
+	case 'o':
+		ee_decode = 1;
+		ee_rd = 1;
+		return 1;
+	case 'm':
+		set_manufacturer = strdup(optarg);
+		ee_rd = 1;
+		ee_wr = 1;
+		return 1;
+	case 'd':
+		set_description = strdup(optarg);
+		ee_rd = 1;
+		ee_wr = 1;
+		return 1;
+	case 's':
+		set_serial = strdup(optarg);
+		ee_rd = 1;
+		ee_wr = 1;
+		return 1;
 	}
 
-out_err:
-	return err;
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -184,24 +123,17 @@ int main(int argc, char *argv[])
 	int err = 0, i;
 
 	/* parse command line options */
-	if (p_options(argc, argv)) {
+	if (common_options(argc, argv, opts, longopts)) {
 		fprintf(stderr, "invalid command line option(s)\n");
 		p_exit(EXIT_FAILURE);
 	}
 
 	/* init ftdi things */
-	ftdi = cmd_init(usb_vid, usb_pid, usb_description, usb_serial, interface);
+	ftdi = common_ftdi_init();
 	if (!ftdi) {
 		p_exit(EXIT_FAILURE);
 	}
 
-	/* reset chip */
-	if (reset) {
-		if (ftdi_usb_reset(ftdi)) {
-			fprintf(stderr, "failed to reset device: %s\n", ftdi_get_error_string(ftdi));
-			p_exit(EXIT_FAILURE);
-		}
-	}
 	/* erase eeprom */
 	if (ee_erase) {
 		if (ftdi_erase_eeprom(ftdi)) {

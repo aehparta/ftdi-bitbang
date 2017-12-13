@@ -8,20 +8,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <getopt.h>
-#include <errno.h>
 #include <libftdi1/ftdi.h>
 #include "ftdi-bitbang.h"
 #include "cmd-common.h"
 
-const char opts[] = "hV:P:D:S:I:s:c:i:r";
+const char opts[] = COMMON_SHORT_OPTS "s:c:i:r";
 struct option longopts[] = {
-	{ "help", no_argument, NULL, 'h' },
-	{ "vid", required_argument, NULL, 'V' },
-	{ "pid", required_argument, NULL, 'P' },
-	{ "description", required_argument, NULL, 'D' },
-	{ "serial", required_argument, NULL, 'S' },
-	{ "interface", required_argument, NULL, 'I' },
+	COMMON_LONG_OPTS
 	{ "set", required_argument, NULL, 's' },
 	{ "clr", required_argument, NULL, 'c' },
 	{ "inp", required_argument, NULL, 'i' },
@@ -29,20 +22,11 @@ struct option longopts[] = {
 	{ 0, 0, 0, 0 },
 };
 
-/* usb vid */
-uint16_t usb_vid = 0;
-/* usb pid */
-uint16_t usb_pid = 0;
-/* usb description */
-const char *usb_description = NULL;
-/* usb serial */
-const char *usb_serial = NULL;
-/* interface (defaults to first one) */
-int interface = INTERFACE_ANY;
 /* which pin state to read or -1 for all (hex output then) */
 int read_pin = -2;
 int pins[16];
 
+/* ftdi device context */
 struct ftdi_context *ftdi = NULL;
 struct ftdi_bitbang_dev *device = NULL;
 
@@ -65,99 +49,49 @@ void p_exit(int return_code)
 	exit(return_code);
 }
 
-/**
- * Print commandline help.
- */
-void p_help(void)
+void p_help()
 {
 	printf(
-	    "Usage: ftdi-bitbang [options]\n"
-	    " -h, --help                   show this help\n"
-	    " -V, --vid=ID                 usb vendor id\n"
-	    " -P, --pid=ID                 usb product id\n"
-	    "                              as default vid and pid are zero, so any FTDI device is used\n"
-	    " -D, --description=STRING     usb description (product) to use for opening right device, default none\n"
-	    " -S, --serial=STRING          usb serial to use for opening right device, default none\n"
-	    " -I, --interface=INTERFACE    ftx232 interface(1-4) number, default first\n"
-	    " -s, --set=PIN                given pin(0-15) as output and one\n"
-	    " -c, --clr=PIN                given pin(0-15) as output and zero\n"
-	    " -i, --inp=PIN                given pin(0-15) as input\n"
-	    " -r, --read[=PIN]             read pin states, output as hex word, if --read=<0-15> given, will output 0 or 1 for that pin\n"
+	    "  -s, --set=PIN              given pin as output and one\n"
+	    "  -c, --clr=PIN              given pin as output and zero\n"
+	    "  -i, --inp=PIN              given pin as input\n"
+	    "                             multiple -s, -c and -i options can be given\n"
+	    "  -r, --read                 read pin states, output hexadecimal word\n"
+	    "      --read=PIN             read single pin, output binary 0 or 1\n"
+	    "\n"
+	    "Simple command line bitbang interface to FTDI FTx232 chips.\n"
 	    "\n");
 }
 
-/**
- * Print commandline help.
- */
-int p_options(int argc, char *argv[])
+int p_options(int c, char *optarg)
 {
-	int err = 0;
-	int longindex = 0, c;
 	int i;
-
-	while ((c = getopt_long(argc, argv, opts, longopts, &longindex)) > -1) {
-		switch (c) {
-		case 'V':
-			i = (int)strtol(optarg, NULL, 16);
-			if (errno == ERANGE || i < 0 || i > 0xffff) {
-				fprintf(stderr, "invalid usb vid value\n");
-				p_exit(1);
-			}
-			usb_vid = (uint16_t)i;
-			break;
-		case 'P':
-			i = (int)strtol(optarg, NULL, 16);
-			if (errno == ERANGE || i < 0 || i > 0xffff) {
-				fprintf(stderr, "invalid usb pid value\n");
-				p_exit(1);
-			}
-			usb_pid = (uint16_t)i;
-			break;
-		case 'D':
-			usb_description = strdup(optarg);
-			break;
-		case 'S':
-			usb_serial = strdup(optarg);
-			break;
-		case 'I':
-			interface = atoi(optarg);
-			if (interface < 0 || interface > 4) {
-				fprintf(stderr, "invalid interface\n");
-				p_exit(1);
-			}
-			break;
-		case 'c':
-		case 's':
-		case 'i':
-			i = atoi(optarg);
-			if (i < 0 || i > 15) {
-				fprintf(stderr, "invalid pin number: %d\n", i);
-				p_exit(1);
-			} else {
-				/* s = out&one, c = out&zero, i = input */
-				pins[i] = c == 's' ? 1 : (c == 'i' ? 2 : 0);
-			}
-			break;
-		case 'r':
-			read_pin = -1;
-			if (optarg) {
-				read_pin = atoi(optarg);
-			}
-			if (read_pin < -1 || read_pin > 15) {
-				fprintf(stderr, "invalid pin number for read parameter: %d\n", i);
-				p_exit(1);
-			}
-			break;
-		default:
-		case '?':
-		case 'h':
-			p_help();
+	switch (c) {
+	case 'c':
+	case 's':
+	case 'i':
+		i = atoi(optarg);
+		if (i < 0 || i > 15) {
+			fprintf(stderr, "invalid pin number: %d\n", i);
+			p_exit(1);
+		} else {
+			/* s = out&one, c = out&zero, i = input */
+			pins[i] = c == 's' ? 1 : (c == 'i' ? 2 : 0);
+		}
+		return 1;
+	case 'r':
+		read_pin = -1;
+		if (optarg) {
+			read_pin = atoi(optarg);
+		}
+		if (read_pin < -1 || read_pin > 15) {
+			fprintf(stderr, "invalid pin number for read parameter: %d\n", i);
 			p_exit(1);
 		}
+		return 1;
 	}
 
-out_err:
-	return err;
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -167,15 +101,15 @@ int main(int argc, char *argv[])
 	for (i = 0; i < 16; i++) {
 		pins[i] = -1;
 	}
-	
+
 	/* parse command line options */
-	if (p_options(argc, argv)) {
+	if (common_options(argc, argv, opts, longopts)) {
 		fprintf(stderr, "invalid command line option(s)\n");
 		p_exit(EXIT_FAILURE);
 	}
 
 	/* init ftdi things */
-	ftdi = cmd_init(usb_vid, usb_pid, usb_description, usb_serial, interface);
+	ftdi = common_ftdi_init();
 	if (!ftdi) {
 		p_exit(EXIT_FAILURE);
 	}
