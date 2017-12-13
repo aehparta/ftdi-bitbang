@@ -13,6 +13,7 @@
 #include <libusb-1.0/libusb.h>
 #include <libftdi1/ftdi.h>
 #include "ftdi-bitbang.h"
+#include "cmd-common.h"
 
 const char opts[] = "hV:P:D:S:I:RENom:d:s:";
 struct option longopts[] = {
@@ -32,10 +33,10 @@ struct option longopts[] = {
 	{ 0, 0, 0, 0 },
 };
 
-/* usb vid (defaults to FT2232H) */
-uint16_t usb_vid = 0x0403;
-/* usb pid (defaults to FT2232H) */
-uint16_t usb_pid = 0x6010;
+/* usb vid */
+uint16_t usb_vid = 0;
+/* usb pid */
+uint16_t usb_pid = 0;
 /* usb description */
 const char *usb_description = NULL;
 /* usb serial */
@@ -178,49 +179,19 @@ out_err:
 	return err;
 }
 
-/**
- * Initialize resources needed by this process.
- *
- * @param argc Argument count.
- * @param argv Argument array.
- * @return 0 on success, -1 on errors.
- */
-int p_init(int argc, char *argv[])
-{
-	int err = 0;
-
-	/* parse command line options */
-	if (p_options(argc, argv)) {
-		fprintf(stderr, "invalid command line option(s)\n");
-		return -1;
-	}
-
-	/* initialize ftdi */
-	ftdi = ftdi_new();
-	if (!ftdi) {
-		fprintf(stderr, "ftdi_new() failed\n");
-		return -1;
-	}
-	err = ftdi_set_interface(ftdi, interface);
-	if (err < 0) {
-		fprintf(stderr, "unable to set selected interface on ftdi device: %d (%s)\n", err, ftdi_get_error_string(ftdi));
-		return -1;
-	}
-	err = ftdi_usb_open_desc(ftdi, usb_vid, usb_pid, usb_description, usb_serial);
-	if (err < 0) {
-		fprintf(stderr, "unable to open ftdi device: %d (%s)\n", err, ftdi_get_error_string(ftdi));
-		return -1;
-	}
-
-	return 0;
-}
-
-
 int main(int argc, char *argv[])
 {
 	int err = 0, i;
 
-	if (p_init(argc, argv)) {
+	/* parse command line options */
+	if (p_options(argc, argv)) {
+		fprintf(stderr, "invalid command line option(s)\n");
+		p_exit(EXIT_FAILURE);
+	}
+
+	/* init ftdi things */
+	ftdi = cmd_init(usb_vid, usb_pid, usb_description, usb_serial, interface);
+	if (!ftdi) {
 		p_exit(EXIT_FAILURE);
 	}
 

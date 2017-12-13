@@ -3,9 +3,9 @@
 bin_PROGRAMS = ftdi-bitbang ftdi-hd44780 ftdi-control
 lib_LTLIBRARIES = libftdi-bitbang.la libftdi-hd44780.la
 
-ftdi_bitbang_SOURCES = cmd-bitbang.c
-ftdi_hd44780_SOURCES = cmd-hd44780.c
-ftdi_control_SOURCES = cmd-control.c
+ftdi_bitbang_SOURCES = cmd-bitbang.c cmd-common.c
+ftdi_hd44780_SOURCES = cmd-hd44780.c cmd-common.c
+ftdi_control_SOURCES = cmd-control.c cmd-common.c
 
 libftdi_bitbang_la_SOURCES = ftdi-bitbang.c
 libftdi_bitbang_la_LDFLAGS = @libftdi1_LIBS@

@@ -12,8 +12,9 @@
 #include <errno.h>
 #include <libftdi1/ftdi.h>
 #include "ftdi-bitbang.h"
+#include "cmd-common.h"
 
-const char opts[] = "hV:P:D:S:I:s:c:r";
+const char opts[] = "hV:P:D:S:I:s:c:i:r";
 struct option longopts[] = {
 	{ "help", no_argument, NULL, 'h' },
 	{ "vid", required_argument, NULL, 'V' },
@@ -24,21 +25,22 @@ struct option longopts[] = {
 	{ "set", required_argument, NULL, 's' },
 	{ "clr", required_argument, NULL, 'c' },
 	{ "inp", required_argument, NULL, 'i' },
-	{ "read", no_argument, NULL, 'r' },
+	{ "read", optional_argument, NULL, 'r' },
 	{ 0, 0, 0, 0 },
 };
 
-/* usb vid (defaults to FT2232H) */
-uint16_t usb_vid = 0x0403;
-/* usb pid (defaults to FT2232H) */
-uint16_t usb_pid = 0x6010;
+/* usb vid */
+uint16_t usb_vid = 0;
+/* usb pid */
+uint16_t usb_pid = 0;
 /* usb description */
 const char *usb_description = NULL;
 /* usb serial */
 const char *usb_serial = NULL;
 /* interface (defaults to first one) */
 int interface = INTERFACE_ANY;
-int read_pins = 0;
+/* which pin state to read or -1 for all (hex output then) */
+int read_pin = -2;
 int pins[16];
 
 struct ftdi_context *ftdi = NULL;
@@ -69,7 +71,18 @@ void p_exit(int return_code)
 void p_help(void)
 {
 	printf(
-	    "No help available.\n"
+	    "Usage: ftdi-bitbang [options]\n"
+	    " -h, --help                   show this help\n"
+	    " -V, --vid=ID                 usb vendor id\n"
+	    " -P, --pid=ID                 usb product id\n"
+	    "                              as default vid and pid are zero, so any FTDI device is used\n"
+	    " -D, --description=STRING     usb description (product) to use for opening right device, default none\n"
+	    " -S, --serial=STRING          usb serial to use for opening right device, default none\n"
+	    " -I, --interface=INTERFACE    ftx232 interface(1-4) number, default first\n"
+	    " -s, --set=PIN                given pin(0-15) as output and one\n"
+	    " -c, --clr=PIN                given pin(0-15) as output and zero\n"
+	    " -i, --inp=PIN                given pin(0-15) as input\n"
+	    " -r, --read[=PIN]             read pin states, output as hex word, if --read=<0-15> given, will output 0 or 1 for that pin\n"
 	    "\n");
 }
 
@@ -126,7 +139,14 @@ int p_options(int argc, char *argv[])
 			}
 			break;
 		case 'r':
-			read_pins = 1;
+			read_pin = -1;
+			if (optarg) {
+				read_pin = atoi(optarg);
+			}
+			if (read_pin < -1 || read_pin > 15) {
+				fprintf(stderr, "invalid pin number for read parameter: %d\n", i);
+				p_exit(1);
+			}
 			break;
 		default:
 		case '?':
@@ -140,63 +160,33 @@ out_err:
 	return err;
 }
 
-/**
- * Initialize resources needed by this process.
- *
- * @param argc Argument count.
- * @param argv Argument array.
- * @return 0 on success, -1 on errors.
- */
-int p_init(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	int err = 0, i;
 
 	for (i = 0; i < 16; i++) {
 		pins[i] = -1;
 	}
-
+	
 	/* parse command line options */
 	if (p_options(argc, argv)) {
 		fprintf(stderr, "invalid command line option(s)\n");
-		return -1;
+		p_exit(EXIT_FAILURE);
 	}
 
-	/* initialize ftdi */
-	ftdi = ftdi_new();
+	/* init ftdi things */
+	ftdi = cmd_init(usb_vid, usb_pid, usb_description, usb_serial, interface);
 	if (!ftdi) {
-		fprintf(stderr, "ftdi_new() failed\n");
-		return -1;
-	}
-	err = ftdi_set_interface(ftdi, interface);
-	if (err < 0) {
-		fprintf(stderr, "unable to set selected interface on ftdi device: %d (%s)\n", err, ftdi_get_error_string(ftdi));
-		return -1;
-	}
-	err = ftdi_usb_open_desc(ftdi, usb_vid, usb_pid, usb_description, usb_serial);
-	if (err < 0) {
-		fprintf(stderr, "unable to open ftdi device: %d (%s)\n", err, ftdi_get_error_string(ftdi));
-		return -1;
+		p_exit(EXIT_FAILURE);
 	}
 
 	/* initialize to bitbang mode */
 	device = ftdi_bitbang_init(ftdi);
 	if (!device) {
 		fprintf(stderr, "ftdi_bitbang_init() failed\n");
-		return -1;
-	}
-	ftdi_bitbang_load_state(device);
-
-	return 0;
-}
-
-
-int main(int argc, char *argv[])
-{
-	int err = 0, i;
-
-	if (p_init(argc, argv)) {
 		p_exit(EXIT_FAILURE);
 	}
+	ftdi_bitbang_load_state(device);
 
 	/* write changes */
 	for (i = 0; i < 16; i++) {
@@ -211,10 +201,30 @@ int main(int argc, char *argv[])
 	ftdi_bitbang_write(device);
 
 	/* read pins */
-	if (read_pins) {
+	if (read_pin == -1) {
 		int pins = ftdi_bitbang_read(device);
+		if (pins < 0) {
+			fprintf(stderr, "failed reading pin states\n");
+			p_exit(EXIT_FAILURE);
+		}
 		printf("%4x\n", pins);
+	} else if (read_pin > 0 && read_pin < 8) {
+		int pins = ftdi_bitbang_read_low(device);
+		if (pins < 0) {
+			fprintf(stderr, "failed reading pin state\n");
+			p_exit(EXIT_FAILURE);
+		}
+		printf("%d\n", pins & (1 << read_pin) ? 1 : 0);
+	} else if (read_pin > 7 && read_pin < 16) {
+		int pins = ftdi_bitbang_read_high(device);
+		if (pins < 0) {
+			fprintf(stderr, "failed reading pin state\n");
+			p_exit(EXIT_FAILURE);
+		}
+		read_pin -= 8;
+		printf("%d\n", pins & (1 << read_pin) ? 1 : 0);
 	}
+
 
 	p_exit(EXIT_SUCCESS);
 	return EXIT_SUCCESS;

@@ -31,6 +31,8 @@ int ftdi_bitbang_set_pin(struct ftdi_bitbang_dev *dev, int bit, int value);
 int ftdi_bitbang_set_io(struct ftdi_bitbang_dev *dev, int bit, int io);
 
 int ftdi_bitbang_write(struct ftdi_bitbang_dev *dev);
+int ftdi_bitbang_read_low(struct ftdi_bitbang_dev *dev);
+int ftdi_bitbang_read_high(struct ftdi_bitbang_dev *dev);
 int ftdi_bitbang_read(struct ftdi_bitbang_dev *dev);
 
 int ftdi_bitbang_load_state(struct ftdi_bitbang_dev *dev);
