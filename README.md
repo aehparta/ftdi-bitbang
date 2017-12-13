@@ -1,4 +1,4 @@
-# Contents
+# Description
 ## Command line tools
 * ftdi-bitbang
 * ftdi-control
@@ -6,6 +6,17 @@
 ## Libraries
 * libftdi-bitbang
 * libftdi-hd44780
+## Compile
+```sh
+~/ftdi-bitbang$ ./autogen.sh
+~/ftdi-bitbang$ make
+~/ftdi-bitbang$ make install
+```
+Or in debian based platforms you can generate debian package:
+```sh
+~/ftdi-bitbang$ ./autogen.sh deb
+~/ftdi-bitbang$ sudo dpkg -i debian/ftdi-bitbang-VERSION-BUILD-ARCH.deb
+```
 
 # ftdi-bitbang
 Simple command line bitbang interface to FTDI FTx232 chips.
