@@ -125,11 +125,12 @@ int main(int argc, char *argv[])
 	ftdi_bitbang_load_state(device);
 
 	/* initialize spi */
-	spi = ftdi_spi_init(device, sclk, mosi, miso, ss, cpol, cpha);
+	spi = ftdi_spi_init(device, sclk, mosi, miso, ss);
 	if (!spi) {
 		fprintf(stderr, "ftdi_spi_init() failed\n");
 		return -1;
 	}
+	ftdi_spi_set_mode(spi, cpol, cpha);
 
 	/* run commands */
 

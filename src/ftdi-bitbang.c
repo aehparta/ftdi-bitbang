@@ -92,7 +92,9 @@ int ftdi_bitbang_write(struct ftdi_bitbang_context *dev)
 		buf[n++] = dev->state.h_io;
 		dev->state.h_changed = 0;
 	}
-	ftdi_write_data(dev->ftdi, buf, n);
+	if (n > 0) {
+		return ftdi_write_data(dev->ftdi, buf, n) > 0 ? 0 : -1;
+	}
 	return 0;
 }
 
