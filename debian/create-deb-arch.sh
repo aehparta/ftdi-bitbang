@@ -34,8 +34,6 @@ copy_binpkg_files()
 	mkdir -p "$PKGDIR/usr/lib"
 	mkdir -p "$PKGDIR/usr/lib/pkgconfig"
 	mkdir -p "$PKGDIR/usr/share"
-	mkdir -p "$PKGDIR/usr/share/man"
-	mkdir -p "$PKGDIR/usr/share/man/man1"
 	mkdir -p "$PKGDIR/usr/include"
 	
 	# copy debian package files
@@ -76,10 +74,6 @@ copy_binpkg_files()
 	if [ -e $ROOT/src/$PACKAGE_NAME.pc ]; then
 		cp $ROOT/src/$PACKAGE_NAME.pc $PKGDIR/usr/lib/pkgconfig
 	fi
-
-    cp $ROOT/man/ftdi-bitbang.1 $PKGDIR/usr/share/man/man1
-    cp $ROOT/man/ftdi-hd44780.1 $PKGDIR/usr/share/man/man1
-    cp $ROOT/man/ftdi-control.1 $PKGDIR/usr/share/man/man1
 
 	set +e
 }

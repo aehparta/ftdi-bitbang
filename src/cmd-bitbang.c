@@ -28,7 +28,7 @@ int pins[16];
 
 /* ftdi device context */
 struct ftdi_context *ftdi = NULL;
-struct ftdi_bitbang_dev *device = NULL;
+struct ftdi_bitbang_context *device = NULL;
 
 /**
  * Free resources allocated by process, quit using libraries, terminate

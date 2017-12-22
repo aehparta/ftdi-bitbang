@@ -44,8 +44,8 @@ int rs = 6;
 
 /* ftdi device context */
 struct ftdi_context *ftdi = NULL;
-struct ftdi_bitbang_dev *device = NULL;
-struct ftdi_hd44780_dev *hd44780 = NULL;
+struct ftdi_bitbang_context *device = NULL;
+struct ftdi_hd44780_context *hd44780 = NULL;
 
 uint8_t *commands = NULL;
 int commands_count = 0;

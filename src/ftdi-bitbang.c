@@ -20,9 +20,9 @@
 #include "ftdi-bitbang.h"
 
 
-struct ftdi_bitbang_dev *ftdi_bitbang_init(struct ftdi_context *ftdi)
+struct ftdi_bitbang_context *ftdi_bitbang_init(struct ftdi_context *ftdi)
 {
-	struct ftdi_bitbang_dev *dev = malloc(sizeof(struct ftdi_bitbang_dev));
+	struct ftdi_bitbang_context *dev = malloc(sizeof(struct ftdi_bitbang_context));
 	if (!dev) {
 		return NULL;
 	}
@@ -39,12 +39,12 @@ struct ftdi_bitbang_dev *ftdi_bitbang_init(struct ftdi_context *ftdi)
 	return dev;
 }
 
-void ftdi_bitbang_free(struct ftdi_bitbang_dev *dev)
+void ftdi_bitbang_free(struct ftdi_bitbang_context *dev)
 {
 	free(dev);
 }
 
-int ftdi_bitbang_set_pin(struct ftdi_bitbang_dev *dev, int bit, int value)
+int ftdi_bitbang_set_pin(struct ftdi_bitbang_context *dev, int bit, int value)
 {
 	/* get which byte it is, higher or lower */
 	uint8_t *v = bit < 8 ? &dev->state.l_value : &dev->state.h_value;
@@ -60,7 +60,7 @@ int ftdi_bitbang_set_pin(struct ftdi_bitbang_dev *dev, int bit, int value)
 	return 0;
 }
 
-int ftdi_bitbang_set_io(struct ftdi_bitbang_dev *dev, int bit, int io)
+int ftdi_bitbang_set_io(struct ftdi_bitbang_context *dev, int bit, int io)
 {
 	/* get which byte it is, higher or lower */
 	uint8_t *v = bit < 8 ? &dev->state.l_io : &dev->state.h_io;
@@ -76,7 +76,7 @@ int ftdi_bitbang_set_io(struct ftdi_bitbang_dev *dev, int bit, int io)
 	return 0;
 }
 
-int ftdi_bitbang_write(struct ftdi_bitbang_dev *dev)
+int ftdi_bitbang_write(struct ftdi_bitbang_context *dev)
 {
 	uint8_t buf[6];
 	int n = 0;
@@ -96,7 +96,7 @@ int ftdi_bitbang_write(struct ftdi_bitbang_dev *dev)
 	return 0;
 }
 
-int ftdi_bitbang_read_low(struct ftdi_bitbang_dev *dev)
+int ftdi_bitbang_read_low(struct ftdi_bitbang_context *dev)
 {
 	uint8_t buf[1] = { 0x81 };
 	ftdi_usb_purge_rx_buffer(dev->ftdi);
@@ -109,7 +109,7 @@ int ftdi_bitbang_read_low(struct ftdi_bitbang_dev *dev)
 	return (int)buf[0];
 }
 
-int ftdi_bitbang_read_high(struct ftdi_bitbang_dev *dev)
+int ftdi_bitbang_read_high(struct ftdi_bitbang_context *dev)
 {
 	uint8_t buf[1] = { 0x83 };
 	ftdi_usb_purge_rx_buffer(dev->ftdi);
@@ -122,7 +122,7 @@ int ftdi_bitbang_read_high(struct ftdi_bitbang_dev *dev)
 	return (int)buf[0];
 }
 
-int ftdi_bitbang_read(struct ftdi_bitbang_dev *dev)
+int ftdi_bitbang_read(struct ftdi_bitbang_context *dev)
 {
 	int h, l;
 	l = ftdi_bitbang_read_low(dev);
@@ -133,7 +133,17 @@ int ftdi_bitbang_read(struct ftdi_bitbang_dev *dev)
 	return (h << 8) | l;
 }
 
-static char *_generate_state_filename(struct ftdi_bitbang_dev *dev)
+int ftdi_bitbang_read_pin(struct ftdi_bitbang_context *dev, uint8_t pin)
+{
+	if (pin <= 7 && pin >= 0) {
+		return (ftdi_bitbang_read_low(dev) & (1 << pin)) ? 1 : 0;
+	} else if (pin >= 8 && pin <= 15) {
+		return (ftdi_bitbang_read_high(dev) & (1 << (pin - 8))) ? 1 : 0;
+	}
+	return -1;
+}
+
+static char *_generate_state_filename(struct ftdi_bitbang_context *dev)
 {
 	int i;
 	char *state_filename = NULL;
@@ -150,7 +160,7 @@ static char *_generate_state_filename(struct ftdi_bitbang_dev *dev)
 	return state_filename;
 }
 
-int ftdi_bitbang_load_state(struct ftdi_bitbang_dev *dev)
+int ftdi_bitbang_load_state(struct ftdi_bitbang_context *dev)
 {
 	int fd, n;
 	char *state_filename;
@@ -176,7 +186,7 @@ int ftdi_bitbang_load_state(struct ftdi_bitbang_dev *dev)
 	return 0;
 }
 
-int ftdi_bitbang_save_state(struct ftdi_bitbang_dev *dev)
+int ftdi_bitbang_save_state(struct ftdi_bitbang_context *dev)
 {
 	int fd, n;
 	char *state_filename;
