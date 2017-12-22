@@ -66,8 +66,8 @@ void p_help()
 	    "  -o, --mosi=PIN             SPI MOSI\n"
 	    "  -i, --miso=PIN             SPI MISO\n"
 	    "  -s, --ss=PIN               SPI SS (select)\n"
-	    "  -l, --cpol                 set SPI CPOL to 1 (default 0)\n"
-	    "  -a, --cpha                 set SPI CPHA to 1 (default 0)\n"
+	    "  -l, --cpol1                set SPI CPOL to 1 (default 0)\n"
+	    "  -a, --cpha1                set SPI CPHA to 1 (default 0)\n"
 	    "\n"
 	    "Bitbang style SPI through FTDI FTx232 chips.\n"
 	    "\n");
