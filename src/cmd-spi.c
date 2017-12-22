@@ -62,7 +62,7 @@ void p_exit(int return_code)
 void p_help()
 {
 	printf(
-	    "  -c, --sclk=PIN             SPI SCK\n"
+	    "  -c, --sclk=PIN             SPI SCLK\n"
 	    "  -o, --mosi=PIN             SPI MOSI\n"
 	    "  -i, --miso=PIN             SPI MISO\n"
 	    "  -s, --ss=PIN               SPI SS (select)\n"
