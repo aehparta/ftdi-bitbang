@@ -12,7 +12,7 @@
 
 #include <getopt.h>
 
-#define COMMON_SHORT_OPTS "hV:P:D:S:I:"
+#define COMMON_SHORT_OPTS "hV:P:D:S:I:R"
 #define COMMON_LONG_OPTS \
     { "help", no_argument, NULL, 'h' }, \
     { "vid", required_argument, NULL, 'V' }, \

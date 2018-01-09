@@ -62,10 +62,10 @@ void p_exit(int return_code)
 void p_help()
 {
 	printf(
-	    "  -c, --sclk=PIN             SPI SCLK\n"
-	    "  -o, --mosi=PIN             SPI MOSI\n"
-	    "  -i, --miso=PIN             SPI MISO\n"
-	    "  -s, --ss=PIN               SPI SS (select)\n"
+	    "  -c, --sclk=PIN             SPI SCLK, default pin is 0\n"
+	    "  -o, --mosi=PIN             SPI MOSI, default pin is 1\n"
+	    "  -i, --miso=PIN             SPI MISO, default pin is 2\n"
+	    "  -s, --ss=PIN               SPI SS, default pin is 3\n"
 	    "  -l, --cpol1                set SPI CPOL to 1 (default 0)\n"
 	    "  -a, --cpha1                set SPI CPHA to 1 (default 0)\n"
 	    "\n"
@@ -103,6 +103,7 @@ int p_options(int c, char *optarg)
 int main(int argc, char *argv[])
 {
 	int err = 0, i;
+	uint8_t buf[24];
 
 	/* parse command line options */
 	if (common_options(argc, argv, opts, longopts)) {
@@ -124,6 +125,23 @@ int main(int argc, char *argv[])
 	}
 	ftdi_bitbang_load_state(device);
 
+
+
+	ftdi_write_data_set_chunksize(ftdi, 4);
+	ftdi_write_data_get_chunksize(ftdi, &i);
+	printf("chunk size: %d\n", i);
+	ftdi_set_latency_timer(ftdi, 1);
+	ftdi_get_latency_timer(ftdi, &i);
+	printf("latency: %d\n", i);
+
+	ftdi_bitbang_set_io(device, 0, 1);
+	while (1) {
+		ftdi_bitbang_set_pin(device, 0, 0);
+		ftdi_bitbang_write(device);
+		ftdi_bitbang_set_pin(device, 0, 1);
+		ftdi_bitbang_write(device);
+	}
+	
 	/* initialize spi */
 	spi = ftdi_spi_init(device, sclk, mosi, miso, ss);
 	if (!spi) {
@@ -133,6 +151,10 @@ int main(int argc, char *argv[])
 	ftdi_spi_set_mode(spi, cpol, cpha);
 
 	/* run commands */
+	ftdi_spi_enable(spi);
+	ftdi_spi_transfer_do(spi, 0x060, 11);
+	printf("0x%04x\n", ftdi_spi_transfer_do(spi, 0, 13));
+	ftdi_spi_disable(spi);
 
 	p_exit(EXIT_SUCCESS);
 	return EXIT_SUCCESS;
