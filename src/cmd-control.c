@@ -13,7 +13,7 @@
 #include "ftdi-bitbang.h"
 #include "cmd-common.h"
 
-const char opts[] = COMMON_SHORT_OPTS "RENom:d:s:";
+const char opts[] = COMMON_SHORT_OPTS "ENom:d:s:l:x:n:";
 struct option longopts[] = {
 	COMMON_LONG_OPTS
 	{ "ee-erase", no_argument, NULL, 'E' },
@@ -22,6 +22,9 @@ struct option longopts[] = {
 	{ "ee-manufacturer", required_argument, NULL, 'm' },
 	{ "ee-description", required_argument, NULL, 'd' },
 	{ "ee-serial", required_argument, NULL, 's' },
+	{ "ee-serial-len", required_argument, NULL, 'l' },
+	{ "ee-serial-hex", required_argument, NULL, 'x' },
+	{ "ee-serial-dec", required_argument, NULL, 'n' },
 	{ 0, 0, 0, 0 },
 };
 
@@ -41,6 +44,8 @@ int ee_wr = 0;
 
 char *set_description = NULL;
 char *set_serial = NULL;
+int set_serial_len = 0;
+int set_serial_mode = 0;
 char *set_manufacturer = NULL;
 
 /**
@@ -78,6 +83,9 @@ void p_help()
 	    "  -d, --ee-description=STRING\n"
 	    "                             write description (product) string\n"
 	    "  -s, --ee-serial=STRING     write serial string\n"
+	    "  -l, --ee-serial-len=LENGTH pad serial with randomized ascii letters and numbers to this length (upper case)\n"
+	    "  -x, --ee-serial-hex=LENGTH pad serial with randomized hex to this length (upper case)\n"
+	    "  -n, --ee-serial-dec=LENGTH pad serial with randomized numbers to this length\n"
 	    "\n"
 	    "Basic control and eeprom routines for FTDI FTx232 chips.\n"
 	    "\n");
@@ -109,9 +117,21 @@ int p_options(int c, char *optarg)
 		ee_wr = 1;
 		return 1;
 	case 's':
+		if (set_serial) {
+			free(set_serial);
+		}
 		set_serial = strdup(optarg);
 		ee_rd = 1;
 		ee_wr = 1;
+		return 1;
+	case 'l': /* mode 0 */
+	case 'x': /* mode 1 */
+	case 'n': /* mode 2 */
+		if (!set_serial) {
+			set_serial = strdup("");
+		}
+		set_serial_len = atoi(optarg);
+		set_serial_mode = c == 'n' ? 2 : (c == 'x' ? 1 : 0);
 		return 1;
 	}
 
@@ -121,6 +141,9 @@ int p_options(int c, char *optarg)
 int main(int argc, char *argv[])
 {
 	int err = 0, i;
+
+	/* random seed */
+	srand(time(NULL));
 
 	/* parse command line options */
 	if (common_options(argc, argv, opts, longopts)) {
@@ -134,6 +157,24 @@ int main(int argc, char *argv[])
 		p_exit(EXIT_FAILURE);
 	}
 
+	if (ee_initialize) {
+		/* initialize eeprom to defaults */
+		if (ftdi_eeprom_initdefaults(ftdi, NULL, NULL, NULL)) {
+			fprintf(stderr, "failed to init defaults to eeprom: %s\n", ftdi_get_error_string(ftdi));
+			p_exit(EXIT_FAILURE);
+		}
+	} else if (ee_rd) {
+		/* read eeprom */
+		if (ftdi_read_eeprom(ftdi)) {
+			fprintf(stderr, "failed to read eeprom: %s\n", ftdi_get_error_string(ftdi));
+			p_exit(EXIT_FAILURE);
+		}
+		if (ftdi_eeprom_decode(ftdi, 0)) {
+			fprintf(stderr, "failed to decode eeprom after read: %s\n", ftdi_get_error_string(ftdi));
+			p_exit(EXIT_FAILURE);
+		}
+	}
+
 	/* erase eeprom */
 	if (ee_erase) {
 		if (ftdi_erase_eeprom(ftdi)) {
@@ -141,24 +182,7 @@ int main(int argc, char *argv[])
 			p_exit(EXIT_FAILURE);
 		}
 	}
-	/* read eeprom if needed */
-	if (ee_rd) {
-		if (ftdi_read_eeprom(ftdi) && !ee_initialize) {
-			fprintf(stderr, "failed to read eeprom: %s\n", ftdi_get_error_string(ftdi));
-			p_exit(EXIT_FAILURE);
-		}
-		if (ftdi_eeprom_decode(ftdi, 0) && !ee_initialize) {
-			fprintf(stderr, "failed to decode eeprom: %s\n", ftdi_get_error_string(ftdi));
-			p_exit(EXIT_FAILURE);
-		}
-	}
-	/* initialize eeprom to defaults */
-	if (ee_initialize) {
-		if (ftdi_eeprom_initdefaults(ftdi, "", "", "")) {
-			fprintf(stderr, "failed to init defaults to eeprom: %s\n", ftdi_get_error_string(ftdi));
-			p_exit(EXIT_FAILURE);
-		}
-	}
+
 	/* set strings to eeprom */
 	if (set_manufacturer || set_description || set_serial) {
 		struct libusb_device_descriptor desc;
@@ -175,26 +199,39 @@ int main(int argc, char *argv[])
 			set_serial = calloc(1, 128);
 			libusb_get_string_descriptor_ascii(ftdi->usb_dev, desc.iSerialNumber, set_serial, 127);
 		}
+		if (strlen(set_serial) < set_serial_len) {
+			int i;
+			set_serial = realloc(set_serial, set_serial_len + 1);
+			for (i = strlen(set_serial); i < set_serial_len; i++) {
+				char c;
+				char max = set_serial_mode == 2 ? 0 : (set_serial_mode == 1 ? 'F' : 'Z');
+				/* generate random padding */
+				do {
+					c = rand() & 0x7f;
+				} while ((c < '0' || c > '9') && (c < 'A' || c > max));
+				set_serial[i] = c;
+			}
+			set_serial[set_serial_len] = '\0';
+		}
 		ftdi_eeprom_set_strings(ftdi, set_manufacturer, set_description, set_serial);
+	}
+
+	/* write eeprom data */
+	if (ee_wr) {
+		if (ftdi_eeprom_build(ftdi) < 0) {
+			fprintf(stderr, "failed to build eeprom: %s\n", ftdi_get_error_string(ftdi));
+			p_exit(EXIT_FAILURE);
+		}
+		if (ftdi_write_eeprom(ftdi)) {
+			fprintf(stderr, "failed to write eeprom: %s\n", ftdi_get_error_string(ftdi));
+			p_exit(EXIT_FAILURE);
+		}
 	}
 
 	/* decode eeprom */
 	if (ee_decode) {
 		if (ftdi_eeprom_decode(ftdi, 1)) {
 			fprintf(stderr, "failed to decode eeprom: %s\n", ftdi_get_error_string(ftdi));
-			p_exit(EXIT_FAILURE);
-		}
-	}
-
-	/* write eeprom data */
-	if (ee_wr) {
-		int n = ftdi_eeprom_build(ftdi);
-		if (n < 0) {
-			fprintf(stderr, "failed to build eeprom: %s\n", ftdi_get_error_string(ftdi));
-			p_exit(EXIT_FAILURE);
-		}
-		if (ftdi_write_eeprom(ftdi)) {
-			fprintf(stderr, "failed to write eeprom: %s\n", ftdi_get_error_string(ftdi));
 			p_exit(EXIT_FAILURE);
 		}
 	}
