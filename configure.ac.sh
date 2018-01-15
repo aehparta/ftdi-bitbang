@@ -76,7 +76,6 @@ echo "
 dnl Finally create all the generated files
 AC_CONFIG_FILES([ Makefile
                   src/Makefile
-                  man/Makefile
                   ])
 AC_OUTPUT
 
