@@ -63,8 +63,12 @@ int common_options(int argc, char *argv[], const char opts[], struct option long
 
 	while ((c = getopt_long(argc, argv, opts, longopts, &longindex)) > -1) {
 		/* check for command specific options */
-		if (p_options(c, optarg)) {
+		err = p_options(c, optarg);
+		if (err > 0) {
 			continue;
+		} else if (err < 0) {
+			common_help(argc, argv);
+			p_exit(1);
 		}
 		/* check for common options */
 		switch (c) {

@@ -13,7 +13,7 @@
 #include "ftdi-bitbang.h"
 #include "cmd-common.h"
 
-const char opts[] = COMMON_SHORT_OPTS "ENom:d:s:l:x:n:";
+const char opts[] = COMMON_SHORT_OPTS "ENom:d:s:l:x:n:p:";
 struct option longopts[] = {
 	COMMON_LONG_OPTS
 	{ "ee-erase", no_argument, NULL, 'E' },
@@ -25,6 +25,7 @@ struct option longopts[] = {
 	{ "ee-serial-len", required_argument, NULL, 'l' },
 	{ "ee-serial-hex", required_argument, NULL, 'x' },
 	{ "ee-serial-dec", required_argument, NULL, 'n' },
+	{ "ee-bus-power", required_argument, NULL, 'p' },
 	{ 0, 0, 0, 0 },
 };
 
@@ -47,6 +48,7 @@ char *set_serial = NULL;
 int set_serial_len = 0;
 int set_serial_mode = 0;
 char *set_manufacturer = NULL;
+int set_bus_power = 0;
 
 /**
  * Free resources allocated by process, quit using libraries, terminate
@@ -86,6 +88,7 @@ void p_help()
 	    "  -l, --ee-serial-len=LENGTH pad serial with randomized ascii letters and numbers to this length (upper case)\n"
 	    "  -x, --ee-serial-hex=LENGTH pad serial with randomized hex to this length (upper case)\n"
 	    "  -n, --ee-serial-dec=LENGTH pad serial with randomized numbers to this length\n"
+	    "  -p, --ee-bus-power=INT     bus power drawn by the device (100-500 mA)\n"
 	    "\n"
 	    "Basic control and eeprom routines for FTDI FTx232 chips.\n"
 	    "\n");
@@ -132,6 +135,15 @@ int p_options(int c, char *optarg)
 		}
 		set_serial_len = atoi(optarg);
 		set_serial_mode = c == 'n' ? 2 : (c == 'x' ? 1 : 0);
+		return 1;
+	case 'p':
+		set_bus_power = atoi(optarg);
+		if (set_bus_power < 100 || set_bus_power > 500) {
+			fprintf(stderr, "invalid bus power value, not within 100-500 mA\n");
+			return -1;
+		}
+		ee_rd = 1;
+		ee_wr = 1;
 		return 1;
 	}
 
@@ -214,6 +226,11 @@ int main(int argc, char *argv[])
 			set_serial[set_serial_len] = '\0';
 		}
 		ftdi_eeprom_set_strings(ftdi, set_manufacturer, set_description, set_serial);
+	}
+
+	/* bus power */
+	if (set_bus_power > 100) {
+		ftdi_set_eeprom_value(ftdi, MAX_POWER, set_bus_power);
 	}
 
 	/* write eeprom data */
