@@ -15,6 +15,8 @@
 #include <libftdi1/ftdi.h>
 #include "cmd-common.h"
 
+/* only list */
+int only_list = 1;
 /* usb vid */
 uint16_t usb_vid = 0;
 /* usb pid */
@@ -50,6 +52,7 @@ void common_help(int argc, char *argv[])
 	    "  -S, --serial=STRING        usb serial to use for opening right device, default none\n"
 	    "  -I, --interface=INTERFACE  ftx232 interface number, defaults to first\n"
 	    "  -R, --reset                do usb reset on the device at start\n"
+	    "  -L, --list                 list devices that can be found with given parameters\n"
 	    "\n"
 	    , basename(argv[0]));
 	p_help();
@@ -65,6 +68,7 @@ int common_options(int argc, char *argv[], const char opts[], struct option long
 		/* check for command specific options */
 		err = p_options(c, optarg);
 		if (err > 0) {
+			only_list = only_list < 2 ? 0 : only_list;
 			continue;
 		} else if (err < 0) {
 			common_help(argc, argv);
@@ -104,6 +108,9 @@ int common_options(int argc, char *argv[], const char opts[], struct option long
 		case 'R':
 			reset = 1;
 			break;
+		case 'L':
+			only_list = 2;
+			break;
 		default:
 		case '?':
 		case 'h':
@@ -112,7 +119,59 @@ int common_options(int argc, char *argv[], const char opts[], struct option long
 		}
 	}
 
+	if (argc < optind) {
+		only_list = only_list < 2 ? 0 : only_list;
+	}
+	if (only_list) {
+		common_ftdi_list_print();
+		p_exit(0);
+	}
+
 	return 0;
+}
+
+void common_ftdi_list_print()
+{
+	int i, n;
+	struct ftdi_context *ftdi = NULL;
+	struct ftdi_device_list *list;
+
+	/* initialize ftdi */
+	ftdi = ftdi_new();
+	if (!ftdi) {
+		fprintf(stderr, "ftdi_new() failed\n");
+		return;
+	}
+	n = ftdi_usb_find_all(ftdi, &list, usb_vid, usb_pid);
+	if (n < 1) {
+		fprintf(stderr, "unable to find any matching device\n");
+		return;
+	}
+
+	for (i = 0; i < n; i++) {
+		char m[1024], d[1024], s[1024];
+		memset(m, 0, 1024);
+		memset(d, 0, 1024);
+		memset(s, 0, 1024);
+		ftdi_usb_get_strings(ftdi, list->dev, m, 1024, d, 1024, s, 1024);
+
+		if (usb_description) {
+			if (strcmp(usb_description, d) != 0) {
+				continue;
+			}
+		}
+		if (usb_serial) {
+			if (strcmp(usb_serial, s) != 0) {
+				continue;
+			}
+		}
+
+		printf("%s : %s / %s\n", s, d, m);
+		list = list->next;
+	}
+
+	ftdi_list_free(&list);
+	ftdi_free(ftdi);
 }
 
 struct ftdi_context *common_ftdi_init()

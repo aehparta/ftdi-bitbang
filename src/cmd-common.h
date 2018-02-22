@@ -12,7 +12,7 @@
 
 #include <getopt.h>
 
-#define COMMON_SHORT_OPTS "hV:P:D:S:I:R"
+#define COMMON_SHORT_OPTS "hV:P:D:S:I:RL"
 #define COMMON_LONG_OPTS \
     { "help", no_argument, NULL, 'h' }, \
     { "vid", required_argument, NULL, 'V' }, \
@@ -20,7 +20,8 @@
     { "description", required_argument, NULL, 'D' }, \
     { "serial", required_argument, NULL, 'S' }, \
     { "interface", required_argument, NULL, 'I' }, \
-    { "reset", no_argument, NULL, 'R' },
+    { "reset", no_argument, NULL, 'R' }, \
+    { "list", no_argument, NULL, 'L' },
 
 
 /**
@@ -51,6 +52,11 @@ void common_help(int argc, char *argv[]);
  * Parse common options.
  */
 int common_options(int argc, char *argv[], const char opts[], struct option longopts[]);
+
+/**
+ * Print list of matching devices.
+ */
+void common_ftdi_list_print();
 
 /**
  * Initialize ftdi resources.
