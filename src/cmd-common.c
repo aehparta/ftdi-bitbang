@@ -154,6 +154,7 @@ void common_ftdi_list_print()
 		memset(d, 0, 1024);
 		memset(s, 0, 1024);
 		ftdi_usb_get_strings(ftdi, list->dev, m, 1024, d, 1024, s, 1024);
+		list = list->next;
 
 		if (usb_description) {
 			if (strcmp(usb_description, d) != 0) {
@@ -167,7 +168,6 @@ void common_ftdi_list_print()
 		}
 
 		printf("%s : %s / %s\n", s, d, m);
-		list = list->next;
 	}
 
 	ftdi_list_free(&list);
@@ -176,8 +176,9 @@ void common_ftdi_list_print()
 
 struct ftdi_context *common_ftdi_init()
 {
-	int err = 0;
+	int err = 0, i, n;
 	struct ftdi_context *ftdi = NULL;
+	struct ftdi_device_list *list;
 
 	/* initialize ftdi */
 	ftdi = ftdi_new();
@@ -191,24 +192,43 @@ struct ftdi_context *common_ftdi_init()
 		return NULL;
 	}
 	/* find first device if vid or pid is zero */
-	if (usb_vid == 0 && usb_pid == 0) {
-		struct ftdi_device_list *list;
-		if (ftdi_usb_find_all(ftdi, &list, usb_vid, usb_pid) < 1) {
+	n = ftdi_usb_find_all(ftdi, &list, usb_vid, usb_pid);
+	if (n < 1) {
+		fprintf(stderr, "unable to find any matching device\n");
+		return NULL;
+	}
+	if (usb_description || usb_serial) {
+		for (i = 0; i < n; i++) {
+			char m[1024], d[1024], s[1024];
+			memset(m, 0, 1024);
+			memset(d, 0, 1024);
+			memset(s, 0, 1024);
+			ftdi_usb_get_strings(ftdi, list->dev, m, 1024, d, 1024, s, 1024);
+			if (usb_description) {
+				if (strcmp(usb_description, d) != 0) {
+					list = list->next;
+					continue;
+				}
+			}
+			if (usb_serial) {
+				if (strcmp(usb_serial, s) != 0) {
+					list = list->next;
+					continue;
+				}
+			}
+			break;
+		}
+		if (i >= n) {
 			fprintf(stderr, "unable to find any matching device\n");
+			ftdi_list_free(&list);
 			return NULL;
 		}
-		err = ftdi_usb_open_dev(ftdi, list->dev);
-		ftdi_list_free(&list);
-		if (err < 0) {
-			fprintf(stderr, "unable to open ftdi device: %s\n", ftdi_get_error_string(ftdi));
-			return NULL;
-		}
-	} else {
-		err = ftdi_usb_open_desc(ftdi, usb_vid, usb_pid, usb_description, usb_serial);
-		if (err < 0) {
-			fprintf(stderr, "unable to open ftdi device: %s\n", ftdi_get_error_string(ftdi));
-			return NULL;
-		}
+	}
+	err = ftdi_usb_open_dev(ftdi, list->dev);
+	ftdi_list_free(&list);
+	if (err < 0) {
+		fprintf(stderr, "unable to open ftdi device: %s\n", ftdi_get_error_string(ftdi));
+		return NULL;
 	}
 	/* reset chip */
 	if (reset) {
