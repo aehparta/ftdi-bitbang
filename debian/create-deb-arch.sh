@@ -21,7 +21,7 @@ SRCDIR=$PKGDIR_SRC/$PACKAGE_NAME-$PACKAGE_VERSION
 ROOT=$PWD
 PKGNAME="$PACKAGE_NAME-$PACKAGE_VERSION-$PACKAGE_BUILD-$PACKAGE_ARCH.deb"
 PACKAGES_REMOTE_HOST="aehparta@packages.tldr.fi"
-PACKAGES_REMOTE_PATH="/home/aehparta/www/tldr.fi/packages/web/bionic"
+PACKAGES_REMOTE_PATH="/home/aehparta/www/tldr.fi/packages/web/ubuntu/bionic/$PACKAGE_ARCH"
 
 # Copy binary package files.
 copy_binpkg_files()
@@ -114,6 +114,7 @@ if [ "$PACKAGES_REMOTE_HOST" != "" ]; then
     echo "** Releasing package to the wild"
     ssh "$PACKAGES_REMOTE_HOST" "rm $PACKAGES_REMOTE_PATH/$PACKAGE_NAME-*-$PACKAGE_ARCH.deb"
     scp "$PKGNAME" "$PACKAGES_REMOTE_HOST:$PACKAGES_REMOTE_PATH"
+    ssh "$PACKAGES_REMOTE_HOST" "cd $PACKAGES_REMOTE_PATH && dpkg-scanpackages . | gzip -9c > Packages.gz"
 fi
 
 let "PACKAGE_BUILD += 1"
