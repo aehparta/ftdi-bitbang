@@ -20,6 +20,8 @@ PKGDIR_SRC=$PKGROOT/$PACKAGE_NAME-$PACKAGE_VERSION-deb-src
 SRCDIR=$PKGDIR_SRC/$PACKAGE_NAME-$PACKAGE_VERSION
 ROOT=$PWD
 PKGNAME="$PACKAGE_NAME-$PACKAGE_VERSION-$PACKAGE_BUILD-$PACKAGE_ARCH.deb"
+PACKAGES_REMOTE_HOST="aehparta@packages.tldr.fi"
+PACKAGES_REMOTE_PATH="/home/aehparta/www/tldr.fi/packages/web/bionic"
 
 # Copy binary package files.
 copy_binpkg_files()
@@ -106,6 +108,12 @@ if dpkg-deb -b "$PKGDIR" "$PKGNAME"; then
 	echo "** Successfully finished building package."
 else
 	echo "** Error while building package!"
+fi
+
+if [ "$PACKAGES_REMOTE_HOST" != "" ]; then
+    echo "** Releasing package to the wild"
+    ssh "$PACKAGES_REMOTE_HOST" "rm $PACKAGES_REMOTE_PATH/$PACKAGE_NAME-*-$PACKAGE_ARCH.deb"
+    scp "$PKGNAME" "$PACKAGES_REMOTE_HOST:$PACKAGES_REMOTE_PATH"
 fi
 
 let "PACKAGE_BUILD += 1"
