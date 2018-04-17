@@ -20,8 +20,8 @@ PKGDIR_SRC=$PKGROOT/$PACKAGE_NAME-$PACKAGE_VERSION-deb-src
 SRCDIR=$PKGDIR_SRC/$PACKAGE_NAME-$PACKAGE_VERSION
 ROOT=$PWD
 PKGNAME="$PACKAGE_NAME-$PACKAGE_VERSION-$PACKAGE_BUILD-$PACKAGE_ARCH.deb"
-PACKAGES_REMOTE_HOST="aehparta@packages.tldr.fi"
-PACKAGES_REMOTE_PATH="/home/aehparta/www/tldr.fi/packages/web/ubuntu/bionic/$PACKAGE_ARCH"
+#PACKAGES_REMOTE_HOST="aehparta@packages.tldr.fi"
+#PACKAGES_REMOTE_PATH="/home/aehparta/www/tldr.fi/packages/web/ubuntu/bionic/$PACKAGE_ARCH"
 
 # Copy binary package files.
 copy_binpkg_files()
