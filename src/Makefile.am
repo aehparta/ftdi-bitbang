@@ -29,7 +29,7 @@ ftdi_control_LDFLAGS = -lftdi-bitbang @libftdi1_LIBS@
 ftdi_control_CFLAGS = @libftdi1_CFLAGS@
 ftdi_spi_LDFLAGS = -lftdi-bitbang -lftdi-spi @libftdi1_LIBS@
 ftdi_spi_CFLAGS = @libftdi1_CFLAGS@
-ftdi_simple_capture_LDFLAGS = -lpthread @libftdi1_LIBS@
+ftdi_simple_capture_LDFLAGS = -lftdi-bitbang -lpthread @libftdi1_LIBS@
 ftdi_simple_capture_CFLAGS = @libftdi1_CFLAGS@
 
 include_HEADERS = ftdi-bitbang.h ftdi-hd44780.h ftdi-spi.h
