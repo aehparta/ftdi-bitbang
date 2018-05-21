@@ -10,12 +10,12 @@ PACKAGE_PRIORITY="optional"
 PACKAGE_NAME="ftdi-bitbang"
 PACKAGE_DESC="bitbang control through FTDI FTx232 chips"
 PACKAGE_VERSION_MAJOR="1"
-PACKAGE_VERSION_MINOR="0"
+PACKAGE_VERSION_MINOR="1"
 PACKAGE_VERSION_MICRO="0"
 PACKAGE_VERSION="$PACKAGE_VERSION_MAJOR.$PACKAGE_VERSION_MINOR.$PACKAGE_VERSION_MICRO"
 
 # binaries/libraries to install
-PACKAGE_BINS="ftdi-bitbang ftdi-hd44780 ftdi-control ftdi-spi"
+PACKAGE_BINS="ftdi-bitbang ftdi-hd44780 ftdi-control ftdi-spi ftdi-simple-capture"
 PACKAGE_LIBS="libftdi-bitbang libftdi-hd44780 libftdi-spi"
 
 # get build number
