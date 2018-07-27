@@ -26,6 +26,8 @@ uint16_t usb_pid = 0;
 const char *usb_description = NULL;
 /* usb serial */
 const char *usb_serial = NULL;
+/* usb id */
+const char *usb_id = NULL;
 /* interface (defaults to first one) */
 int interface = INTERFACE_ANY;
 /* reset flag, reset usb device if this is set */
@@ -52,6 +54,7 @@ void common_help(int argc, char *argv[])
 	    "  -D, --description=STRING   usb description (product) to use for opening right device, default none\n"
 	    "  -S, --serial=STRING        usb serial to use for opening right device, default none\n"
 	    "  -I, --interface=INTERFACE  ftx232 interface number, defaults to first\n"
+	    "  -U, --usbid=ID             usbid to use for opening right device (sysfs format, e.g. 1-2.3), default none\n"
 	    "  -R, --reset                do usb reset on the device at start\n"
 	    "  -L, --list                 list devices that can be found with given parameters\n"
 	    "\n"
@@ -98,6 +101,9 @@ int common_options(int argc, char *argv[], const char opts[], struct option long
 			break;
 		case 'S':
 			usb_serial = strdup(optarg);
+			break;
+		case 'U':
+			usb_id = strdup(optarg);
 			break;
 		case 'I':
 			interface = atoi(optarg);
@@ -162,6 +168,21 @@ static char * get_usbid(struct libusb_device *dev)
 	return buf;
 }
 
+static int usbid_is_match(struct libusb_device *dev)
+{
+	char *id;
+	int ret;
+
+	if (!usb_id)
+		return 1;
+
+	id = get_usbid(dev);
+	ret = id && strcmp(usb_id, id) == 0;
+	free(id);
+
+	return ret;
+}
+
 void common_ftdi_list_print()
 {
 	int i, n;
@@ -183,6 +204,7 @@ void common_ftdi_list_print()
 	for (i = 0; i < n; i++) {
 		char m[1024], d[1024], s[1024];
 		char *id = get_usbid(list->dev);
+		int usbid_match = usbid_is_match(list->dev);
 		memset(m, 0, 1024);
 		memset(d, 0, 1024);
 		memset(s, 0, 1024);
@@ -200,8 +222,13 @@ void common_ftdi_list_print()
 			}
 		}
 
+		if (!usbid_match)
+			continue;
+
 		printf("%s %s : %s / %s\n", id, s, d, m);
 		free(id);
+
+
 	}
 
 	ftdi_list_free(&list);
@@ -232,7 +259,7 @@ struct ftdi_context *common_ftdi_init()
 		return NULL;
 	}
 	match = list;
-	if (usb_description || usb_serial) {
+	if (usb_description || usb_serial || usb_id) {
 		for (i = 0; i < n; i++) {
 			char m[1024], d[1024], s[1024];
 			memset(m, 0, 1024);
@@ -250,6 +277,10 @@ struct ftdi_context *common_ftdi_init()
 					match = match->next;
 					continue;
 				}
+			}
+			if (!usbid_is_match(match->dev)) {
+				match = match->next;
+				continue;
 			}
 			break;
 		}
