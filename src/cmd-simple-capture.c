@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <libftdi1/ftdi.h>
+#include <signal.h>
 #include "cmd-common.h"
 #include "linkedlist.h"
 
@@ -223,11 +224,19 @@ static char *get_sampled_pins_str(uint8_t value)
 	return str;
 }
 
+void sig_catch_int(int signum)
+{
+	signal(signum, sig_catch_int);
+	p_exit(EXIT_FAILURE);
+}
+
 int main(int argc, char *argv[])
 {
 	int err = 0, i;
 	double t;
 	struct sample *sample = NULL;
+
+	signal(SIGINT, sig_catch_int);
 
 	/* parse command line options */
 	if (common_options(argc, argv, opts, longopts)) {
