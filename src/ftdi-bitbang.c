@@ -31,11 +31,6 @@ struct ftdi_bitbang_context *ftdi_bitbang_init(struct ftdi_context *ftdi)
 	/* save args */
 	dev->ftdi = ftdi;
 
-	/* set bitmode to mpsse */
-	if (ftdi_set_bitmode(ftdi, 0x00, BITMODE_MPSSE) != 0) {
-		return NULL;
-	}
-
 	return dev;
 }
 
@@ -46,33 +41,27 @@ void ftdi_bitbang_free(struct ftdi_bitbang_context *dev)
 
 int ftdi_bitbang_set_pin(struct ftdi_bitbang_context *dev, int bit, int value)
 {
-	/* get which byte it is, higher or lower */
-	uint8_t *v = bit < 8 ? &dev->state.l_value : &dev->state.h_value;
-	uint8_t *c = bit < 8 ? &dev->state.l_changed : &dev->state.h_changed;
 	/* get bit in byte mask */
 	uint8_t mask = 1 << (bit - (bit < 8 ? 0 : 8));
 	/* save old pin state */
-	uint8_t was = (*v) & mask;
+	uint8_t was = dev->state.l_value & mask;
 	/* clear and set new value */
-	(*v) = ((*v) & ~mask) | (value ? mask : 0);
+	dev->state.l_value = (dev->state.l_value & ~mask) | (value ? mask : 0);
 	/* set changed if actially changed */
-	(*c) |= was != ((*v) & mask) ? mask : 0;
+	dev->state.l_changed |= was != (dev->state.l_value & mask) ? mask : 0;
 	return 0;
 }
 
 int ftdi_bitbang_set_io(struct ftdi_bitbang_context *dev, int bit, int io)
 {
-	/* get which byte it is, higher or lower */
-	uint8_t *v = bit < 8 ? &dev->state.l_io : &dev->state.h_io;
-	uint8_t *c = bit < 8 ? &dev->state.l_changed : &dev->state.h_changed;
 	/* get bit in byte mask */
 	uint8_t mask = 1 << (bit - (bit < 8 ? 0 : 8));
 	/* save old pin state */
-	uint8_t was = (*v) & mask;
+	uint8_t was = dev->state.l_io & mask;
 	/* clear and set new value */
-	(*v) = ((*v) & ~mask) | (io ? mask : 0);
+	dev->state.l_io = (dev->state.l_io & ~mask) | (io ? mask : 0);
 	/* set changed */
-	(*c) |= was != ((*v) & mask) ? mask : 0;
+	dev->state.l_changed |= was != (dev->state.l_io & mask) ? mask : 0;
 	return 0;
 }
 
@@ -80,44 +69,26 @@ int ftdi_bitbang_write(struct ftdi_bitbang_context *dev)
 {
 	uint8_t buf[6];
 	int n = 0;
+
 	if (dev->state.l_changed) {
-		buf[n++] = 0x80;
+
+		if (ftdi_set_bitmode(dev->ftdi, dev->state.l_io, BITMODE_BITBANG) != 0) {
+			return NULL;
+		}
+
 		buf[n++] = dev->state.l_value;
-		buf[n++] = dev->state.l_io;
 		dev->state.l_changed = 0;
-	}
-	if (dev->state.h_changed) {
-		buf[n++] = 0x82;
-		buf[n++] = dev->state.h_value;
-		buf[n++] = dev->state.h_io;
-		dev->state.h_changed = 0;
-	}
-	if (n > 0) {
+
 		return ftdi_write_data(dev->ftdi, buf, n) > 0 ? 0 : -1;
 	}
+
 	return 0;
 }
 
 int ftdi_bitbang_read_low(struct ftdi_bitbang_context *dev)
 {
-	uint8_t buf[1] = { 0x81 };
+	uint8_t buf[1];
 	ftdi_usb_purge_rx_buffer(dev->ftdi);
-	if (ftdi_write_data(dev->ftdi, &buf[0], 1) != 1) {
-		return -1;
-	}
-	if (ftdi_read_data(dev->ftdi, &buf[0], 1) != 1) {
-		return -1;
-	}
-	return (int)buf[0];
-}
-
-int ftdi_bitbang_read_high(struct ftdi_bitbang_context *dev)
-{
-	uint8_t buf[1] = { 0x83 };
-	ftdi_usb_purge_rx_buffer(dev->ftdi);
-	if (ftdi_write_data(dev->ftdi, &buf[0], 1) != 1) {
-		return -1;
-	}
 	if (ftdi_read_data(dev->ftdi, &buf[0], 1) != 1) {
 		return -1;
 	}
@@ -128,20 +99,15 @@ int ftdi_bitbang_read(struct ftdi_bitbang_context *dev)
 {
 	int h, l;
 	l = ftdi_bitbang_read_low(dev);
-	h = ftdi_bitbang_read_high(dev);
-	if (l < 0 || h < 0) {
+	if (l < 0) {
 		return -1;
 	}
-	return (h << 8) | l;
+	return l;
 }
 
 int ftdi_bitbang_read_pin(struct ftdi_bitbang_context *dev, uint8_t pin)
 {
-	if (pin <= 7 && pin >= 0) {
-		return (ftdi_bitbang_read_low(dev) & (1 << pin)) ? 1 : 0;
-	} else if (pin >= 8 && pin <= 15) {
-		return (ftdi_bitbang_read_high(dev) & (1 << (pin - 8))) ? 1 : 0;
-	}
+	return (ftdi_bitbang_read_low(dev) & (1 << pin)) ? 1 : 0;
 	return -1;
 }
 

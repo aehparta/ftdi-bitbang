@@ -149,14 +149,6 @@ int main(int argc, char *argv[])
 			p_exit(EXIT_FAILURE);
 		}
 		printf("%d\n", pins & (1 << read_pin) ? 1 : 0);
-	} else if (read_pin > 7 && read_pin < 16) {
-		int pins = ftdi_bitbang_read_high(device);
-		if (pins < 0) {
-			fprintf(stderr, "failed reading pin state\n");
-			p_exit(EXIT_FAILURE);
-		}
-		read_pin -= 8;
-		printf("%d\n", pins & (1 << read_pin) ? 1 : 0);
 	}
 
 
