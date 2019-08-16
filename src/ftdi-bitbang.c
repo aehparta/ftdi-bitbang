@@ -20,7 +20,7 @@
 #include "ftdi-bitbang.h"
 
 
-struct ftdi_bitbang_context *ftdi_bitbang_init(struct ftdi_context *ftdi)
+struct ftdi_bitbang_context *ftdi_bitbang_init(struct ftdi_context *ftdi, int mode, int load_state)
 {
 	struct ftdi_bitbang_context *dev = malloc(sizeof(struct ftdi_bitbang_context));
 	if (!dev) {
@@ -31,13 +31,22 @@ struct ftdi_bitbang_context *ftdi_bitbang_init(struct ftdi_context *ftdi)
 	/* save args */
 	dev->ftdi = ftdi;
 
-	/* set device in bitbang mode as default or always if the device is FT4232H */
-	if (ftdi->type == TYPE_4232H) {
-		/* do not actually set bitmode here, we don't know full state yet */
+	/* load state if requested */
+	if (load_state) {
+		ftdi_bitbang_load_state(dev);
+	}
+
+	if (mode != BITMODE_MPSSE && (dev->state.mode == BITMODE_RESET || dev->state.mode == BITMODE_BITBANG)) {
+		/* do not actually set bitmode here, might not know full state yet */
 		dev->state.mode = BITMODE_BITBANG;
+	} else if (ftdi->type == TYPE_4232H) {
+		/* there is no point in supporting MPSSE within this library when using FT4232H */
+		free(dev);
+		return NULL;
 	} else {
 		/* set bitmode to mpsse */
 		if (ftdi_set_bitmode(ftdi, 0x00, BITMODE_MPSSE)) {
+			free(dev);
 			return NULL;
 		}
 		dev->state.mode = BITMODE_MPSSE;

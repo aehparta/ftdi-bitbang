@@ -13,9 +13,10 @@
 #include "ftdi-hd44780.h"
 #include "cmd-common.h"
 
-const char opts[] = COMMON_SHORT_OPTS "i4:5:6:7:e:r:s:b:CMc:t:l:";
+const char opts[] = COMMON_SHORT_OPTS "m:i4:5:6:7:e:r:s:b:CMc:t:l:";
 struct option longopts[] = {
 	COMMON_LONG_OPTS
+	{ "mode", required_argument, NULL, 'm' },
 	{ "init", no_argument, NULL, 'i' },
 	{ "d4", required_argument, NULL, '4' },
 	{ "d5", required_argument, NULL, '5' },
@@ -46,6 +47,7 @@ int rs = 6;
 struct ftdi_context *ftdi = NULL;
 struct ftdi_bitbang_context *device = NULL;
 struct ftdi_hd44780_context *hd44780 = NULL;
+int bitmode = 0;
 
 uint8_t *commands = NULL;
 int commands_count = 0;
@@ -86,6 +88,7 @@ void p_exit(int return_code)
 void p_help()
 {
 	printf(
+		"  -m, --mode=STRING          set device bitmode, use 'bitbang' or 'mpsse', default is 'bitbang'\n"
 	    "  -i, --init                 initialize hd44780 lcd, usually needed only once at first\n"
 	    "  -4, --d4=PIN               data pin 4, default pin is 0\n"
 	    "  -5, --d5=PIN               data pin 5, default pin is 1\n"
@@ -110,6 +113,16 @@ void p_help()
 int p_options(int c, char *optarg)
 {
 	switch (c) {
+	case 'm':
+		if (strcmp("bitbang", optarg)) {
+			bitmode = BITMODE_BITBANG;
+		} else if (strcmp("mpsse", optarg)) {
+			bitmode = BITMODE_MPSSE;
+		} else {
+			fprintf(stderr, "invalid bitmode\n");
+			return -1;
+		}
+		return 1;
 	case 'i':
 		init = 1;
 		return 1;
@@ -184,12 +197,11 @@ int main(int argc, char *argv[])
 	}
 
 	/* initialize to bitbang mode */
-	device = ftdi_bitbang_init(ftdi);
+	device = ftdi_bitbang_init(ftdi, bitmode, 1);
 	if (!device) {
 		fprintf(stderr, "ftdi_bitbang_init() failed\n");
 		p_exit(EXIT_FAILURE);
 	}
-	ftdi_bitbang_load_state(device);
 
 	/* initialize hd44780 */
 	hd44780 = ftdi_hd44780_init(device, init, d4, d5, d6, d7, en, rw, rs);

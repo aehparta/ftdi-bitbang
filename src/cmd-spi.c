@@ -118,12 +118,11 @@ int main(int argc, char *argv[])
 	}
 
 	/* initialize to bitbang mode */
-	device = ftdi_bitbang_init(ftdi);
+	device = ftdi_bitbang_init(ftdi, BITMODE_MPSSE, 1);
 	if (!device) {
 		fprintf(stderr, "ftdi_bitbang_init() failed\n");
 		p_exit(EXIT_FAILURE);
 	}
-	ftdi_bitbang_load_state(device);
 
 
 

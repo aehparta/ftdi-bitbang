@@ -12,9 +12,10 @@
 #include "ftdi-bitbang.h"
 #include "cmd-common.h"
 
-const char opts[] = COMMON_SHORT_OPTS "s:c:i:r";
+const char opts[] = COMMON_SHORT_OPTS "m:s:c:i:r";
 struct option longopts[] = {
 	COMMON_LONG_OPTS
+	{ "mode", required_argument, NULL, 'm' },
 	{ "set", required_argument, NULL, 's' },
 	{ "clr", required_argument, NULL, 'c' },
 	{ "inp", required_argument, NULL, 'i' },
@@ -29,6 +30,7 @@ int pins[16];
 /* ftdi device context */
 struct ftdi_context *ftdi = NULL;
 struct ftdi_bitbang_context *device = NULL;
+int bitmode = 0;
 
 /**
  * Free resources allocated by process, quit using libraries, terminate
@@ -52,6 +54,7 @@ void p_exit(int return_code)
 void p_help()
 {
 	printf(
+		"  -m, --mode=STRING          set device bitmode, use 'bitbang' or 'mpsse', default is 'bitbang'\n"
 	    "  -s, --set=PIN              given pin as output and one\n"
 	    "  -c, --clr=PIN              given pin as output and zero\n"
 	    "  -i, --inp=PIN              given pin as input\n"
@@ -67,6 +70,16 @@ int p_options(int c, char *optarg)
 {
 	int i;
 	switch (c) {
+	case 'm':
+		if (strcmp("bitbang", optarg) == 0) {
+			bitmode = BITMODE_BITBANG;
+		} else if (strcmp("mpsse", optarg) == 0) {
+			bitmode = BITMODE_MPSSE;
+		} else {
+			fprintf(stderr, "invalid bitmode\n");
+			return -1;
+		}
+		return 1;
 	case 'c':
 	case 's':
 	case 'i':
@@ -115,12 +128,11 @@ int main(int argc, char *argv[])
 	}
 
 	/* initialize to bitbang mode */
-	device = ftdi_bitbang_init(ftdi);
+	device = ftdi_bitbang_init(ftdi, bitmode, 1);
 	if (!device) {
 		fprintf(stderr, "ftdi_bitbang_init() failed\n");
 		p_exit(EXIT_FAILURE);
 	}
-	ftdi_bitbang_load_state(device);
 
 	/* write changes */
 	for (i = 0; i < 16; i++) {
