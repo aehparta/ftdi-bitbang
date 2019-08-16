@@ -113,9 +113,6 @@ int ftdi_bitbang_write(struct ftdi_bitbang_context *dev)
 		}
 		return 0;
 	} else if (dev->state.mode == BITMODE_BITBANG) {
-		if (dev->state.h_changed) {
-			return -1;
-		}
 		if (!dev->state.l_changed) {
 			return 0;
 		}
