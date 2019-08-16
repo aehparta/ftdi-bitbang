@@ -89,14 +89,14 @@ struct ftdi_hd44780_context *ftdi_hd44780_init(struct ftdi_bitbang_context *bb, 
 		_os_sleep(5e-3);
 		_write_nibble(dev, 0, 0x2);
 		_os_sleep(5e-3);
-		/* clear display, set cursor home */
-		ftdi_hd44780_cmd(dev, 0x01);
 		/* entry mode: move cursor right */
 		ftdi_hd44780_cmd(dev, 0x06);
 		/* display on */
 		ftdi_hd44780_cmd(dev, 0x0c);
 		/* cursor/shift */
 		ftdi_hd44780_cmd(dev, 0x10);
+		/* clear display, set cursor home */
+		ftdi_hd44780_cmd(dev, 0x01);
 	}
 
 	return dev;
