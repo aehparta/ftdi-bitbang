@@ -138,7 +138,7 @@ int common_options(int argc, char *argv[], const char opts[], struct option long
 }
 
 /* @note needs to be freed */
-static char * get_usbid(struct libusb_device *dev)
+static char *get_usbid(struct libusb_device *dev)
 {
 	int n, i = 0;
 	uint8_t port_numbers[7];
@@ -302,6 +302,7 @@ struct ftdi_context *common_ftdi_init()
 			fprintf(stderr, "failed to reset device: %s\n", ftdi_get_error_string(ftdi));
 			p_exit(EXIT_FAILURE);
 		}
+		ftdi_set_bitmode(ftdi, 0x00, BITMODE_RESET);
 	}
 
 	return ftdi;

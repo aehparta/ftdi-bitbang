@@ -132,7 +132,10 @@ int main(int argc, char *argv[])
 			ftdi_bitbang_set_pin(device, i, 0);
 		}
 	}
-	ftdi_bitbang_write(device);
+	if (ftdi_bitbang_write(device) < 0) {
+		fprintf(stderr, "failed writing pin states\n");
+		p_exit(EXIT_FAILURE);
+	}
 
 	/* read pins */
 	if (read_pin == -1) {

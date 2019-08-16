@@ -18,6 +18,8 @@ struct ftdi_bitbang_state {
 	uint8_t h_value;
 	uint8_t h_changed;
 	uint8_t h_io;
+	/* BITMODE_BITBANG or BITMODE_MPSSE */
+	int mode;
 };
 struct ftdi_bitbang_context {
 	struct ftdi_context *ftdi;
