@@ -89,7 +89,7 @@ void p_help()
 {
 	printf(
 	    "  -m, --mode=STRING          set device bitmode, use 'bitbang' or 'mpsse', default is 'bitbang'\n"
-	    "                             for bitbang mode the baud rate is fixed to 1 MHz for nowņ"
+	    "                             for bitbang mode the baud rate is fixed to 1 MHz for now\n"
 	    "  -i, --init                 initialize hd44780 lcd, usually needed only once at first\n"
 	    "  -4, --d4=PIN               data pin 4, default pin is 0\n"
 	    "  -5, --d5=PIN               data pin 5, default pin is 1\n"

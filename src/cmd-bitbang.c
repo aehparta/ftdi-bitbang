@@ -55,7 +55,7 @@ void p_help()
 {
 	printf(
 	    "  -m, --mode=STRING          set device bitmode, use 'bitbang' or 'mpsse', default is 'bitbang'\n"
-	    "                             for bitbang mode the baud rate is fixed to 1 MHz for nowņ"
+	    "                             for bitbang mode the baud rate is fixed to 1 MHz for now\n"
 	    "  -s, --set=PIN              given pin as output and one\n"
 	    "  -c, --clr=PIN              given pin as output and zero\n"
 	    "  -i, --inp=PIN              given pin as input\n"

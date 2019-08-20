@@ -39,6 +39,8 @@ Options:
   -I, --interface=INTERFACE  ftx232 interface number, defaults to first
   -R, --reset                do usb reset on the device at start
 
+  -m, --mode=STRING          set device bitmode, use 'bitbang' or 'mpsse', default is 'bitbang'
+                             for bitbang mode the baud rate is fixed to 1 MHz for now
   -s, --set=PIN              given pin as output and one
   -c, --clr=PIN              given pin as output and zero
   -i, --inp=PIN              given pin as input
@@ -101,6 +103,8 @@ Options:
   -I, --interface=INTERFACE  ftx232 interface number, defaults to first
   -R, --reset                do usb reset on the device at start
 
+  -m, --mode=STRING          set device bitmode, use 'bitbang' or 'mpsse', default is 'bitbang'
+                             for bitbang mode the baud rate is fixed to 1 MHz for now
   -i, --init                 initialize hd44780 lcd, usually needed only once at first
   -4, --d4=PIN               data pin 4, default pin is 0
   -5, --d5=PIN               data pin 5, default pin is 1
@@ -117,3 +121,43 @@ Options:
   -t, --text=STRING          write given text to display
   -l, --line=VALUE           move cursor to given line, value between 0-3
 ```
+
+# ftdi-simple-capture
+Do simple digital data capturing using FTDI FTx232 chips.
+Can be used to analyze digital circuit with or without trigger.
+Example use case would be to capture IR signal at pin #0,
+trigger on rising edge and capture 500 mS,
+then feeding it to external script which would filter it as ones and zeroes and so on.
+```
+Usage:
+ ftdi-simple-capture [options]
+
+Definitions for options:
+ ID = hexadecimal word
+ PIN = decimal between 0 and 15
+ INTERFACE = integer between 1 and 4 depending on device type
+
+Options:
+  -h, --help                 display this help and exit
+  -V, --vid=ID               usb vendor id
+  -P, --pid=ID               usb product id
+                             as default vid and pid are zero, so any first compatible ftdi device is used
+  -D, --description=STRING   usb description (product) to use for opening right device, default none
+  -S, --serial=STRING        usb serial to use for opening right device, default none
+  -I, --interface=INTERFACE  ftx232 interface number, defaults to first
+  -U, --usbid=ID             usbid to use for opening right device (sysfs format, e.g. 1-2.3), default none
+  -R, --reset                do usb reset on the device at start
+  -L, --list                 list devices that can be found with given parameters
+
+  -p, --pins=PINS[0-7]       pins to capture, default is '0,1,2,3,4,5,6,7'
+  -t, --trigger=PIN[0-7]:EDGE
+                             trigger from pin on rising or falling edge (EDGE = r or f),
+                             if trigger is not set, sampling will start immediately
+  -s, --speed=INT            sampling speed, default 1000000 (1 MS/s)
+  -l, --time=FLOAT           sample for this many seconds, default 1 second
+
+Simple capture command for FTDI FTx232 chips.
+Uses bitbang mode so only ADBUS (pins 0-7) can be sampled.
+
+```
+
