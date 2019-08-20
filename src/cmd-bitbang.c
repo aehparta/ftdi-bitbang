@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "failed reading pin states\n");
 			p_exit(EXIT_FAILURE);
 		}
-		printf("%4x\n", pins);
+		printf("%04x\n", pins);
 	} else if (read_pin > 0 && read_pin < 8) {
 		int pins = ftdi_bitbang_read_low(device);
 		if (pins < 0) {
