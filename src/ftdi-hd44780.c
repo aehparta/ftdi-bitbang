@@ -71,14 +71,18 @@ struct ftdi_hd44780_context *ftdi_hd44780_init(struct ftdi_bitbang_context *bb, 
 	dev->rs = rs;
 
 	/* setup io pins as outputs */
-	ftdi_bitbang_set_io(dev->bb, dev->d4, 1);
-	ftdi_bitbang_set_io(dev->bb, dev->d5, 1);
-	ftdi_bitbang_set_io(dev->bb, dev->d6, 1);
-	ftdi_bitbang_set_io(dev->bb, dev->d7, 1);
-	ftdi_bitbang_set_io(dev->bb, dev->en, 1);
-	ftdi_bitbang_set_io(dev->bb, dev->rw, 1);
-	ftdi_bitbang_set_io(dev->bb, dev->rs, 1);
-
+	int err = 0;
+	err += ftdi_bitbang_set_io(dev->bb, dev->d4, 1);
+	err += ftdi_bitbang_set_io(dev->bb, dev->d5, 1);
+	err += ftdi_bitbang_set_io(dev->bb, dev->d6, 1);
+	err += ftdi_bitbang_set_io(dev->bb, dev->d7, 1);
+	err += ftdi_bitbang_set_io(dev->bb, dev->en, 1);
+	err += ftdi_bitbang_set_io(dev->bb, dev->rw, 1);
+	err += ftdi_bitbang_set_io(dev->bb, dev->rs, 1);
+	if (err != 0) {
+		return NULL;
+	}
+	
 	/* reset hd44780 so that it will be in 4 bit state for sure */
 	if (reset) {
 		_write_nibble(dev, 0, 0x3);

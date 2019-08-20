@@ -36,7 +36,10 @@ struct ftdi_bitbang_context *ftdi_bitbang_init(struct ftdi_context *ftdi, int mo
 		ftdi_bitbang_load_state(dev);
 	}
 
-	if (mode != BITMODE_MPSSE && (dev->state.mode == BITMODE_RESET || dev->state.mode == BITMODE_BITBANG)) {
+	if (mode != BITMODE_MPSSE &&
+	        (mode == BITMODE_BITBANG ||
+	         dev->state.mode == BITMODE_RESET ||
+	         dev->state.mode == BITMODE_BITBANG)) {
 		/* do not actually set bitmode here, might not know full state yet */
 		dev->state.mode = BITMODE_BITBANG;
 	} else if (ftdi->type == TYPE_4232H) {
@@ -125,9 +128,11 @@ int ftdi_bitbang_write(struct ftdi_bitbang_context *dev)
 		if (!dev->state.l_changed) {
 			return 0;
 		}
+		/** @todo setting bitmode and baudrate every time, should fix */
 		if (ftdi_set_bitmode(dev->ftdi, dev->state.l_io, BITMODE_BITBANG)) {
 			return -1;
 		}
+		ftdi_set_baudrate(dev->ftdi, 1e6);
 		if (ftdi_write_data(dev->ftdi, &dev->state.l_value, 1) < 1) {
 			return -1;
 		}
@@ -152,9 +157,11 @@ int ftdi_bitbang_read_low(struct ftdi_bitbang_context *dev)
 		}
 		return (int)buf[0];
 	} else if (dev->state.mode == BITMODE_BITBANG) {
+		/** @todo setting bitmode and baudrate every time, should fix */
 		if (ftdi_set_bitmode(dev->ftdi, dev->state.l_io, BITMODE_BITBANG)) {
 			return -1;
 		}
+		ftdi_set_baudrate(dev->ftdi, 1e6);
 		uint8_t pins;
 		if (ftdi_read_pins(dev->ftdi, &pins)) {
 			return -1;

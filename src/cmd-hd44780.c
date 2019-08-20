@@ -88,7 +88,8 @@ void p_exit(int return_code)
 void p_help()
 {
 	printf(
-		"  -m, --mode=STRING          set device bitmode, use 'bitbang' or 'mpsse', default is 'bitbang'\n"
+	    "  -m, --mode=STRING          set device bitmode, use 'bitbang' or 'mpsse', default is 'bitbang'\n"
+	    "                             for bitbang mode the baud rate is fixed to 1 MHz for nowņ"
 	    "  -i, --init                 initialize hd44780 lcd, usually needed only once at first\n"
 	    "  -4, --d4=PIN               data pin 4, default pin is 0\n"
 	    "  -5, --d5=PIN               data pin 5, default pin is 1\n"
@@ -114,9 +115,9 @@ int p_options(int c, char *optarg)
 {
 	switch (c) {
 	case 'm':
-		if (strcmp("bitbang", optarg)) {
+		if (strcmp("bitbang", optarg) == 0) {
 			bitmode = BITMODE_BITBANG;
-		} else if (strcmp("mpsse", optarg)) {
+		} else if (strcmp("mpsse", optarg) == 0) {
 			bitmode = BITMODE_MPSSE;
 		} else {
 			fprintf(stderr, "invalid bitmode\n");

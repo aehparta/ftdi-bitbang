@@ -54,7 +54,8 @@ void p_exit(int return_code)
 void p_help()
 {
 	printf(
-		"  -m, --mode=STRING          set device bitmode, use 'bitbang' or 'mpsse', default is 'bitbang'\n"
+	    "  -m, --mode=STRING          set device bitmode, use 'bitbang' or 'mpsse', default is 'bitbang'\n"
+	    "                             for bitbang mode the baud rate is fixed to 1 MHz for nowņ"
 	    "  -s, --set=PIN              given pin as output and one\n"
 	    "  -c, --clr=PIN              given pin as output and zero\n"
 	    "  -i, --inp=PIN              given pin as input\n"
@@ -136,12 +137,16 @@ int main(int argc, char *argv[])
 
 	/* write changes */
 	for (i = 0; i < 16; i++) {
+		int err = 0;
 		if (pins[i] == 0 || pins[i] == 1) {
-			ftdi_bitbang_set_io(device, i, 1);
-			ftdi_bitbang_set_pin(device, i, pins[i] ? 1 : 0);
+			err += ftdi_bitbang_set_io(device, i, 1);
+			err += ftdi_bitbang_set_pin(device, i, pins[i] ? 1 : 0);
 		} else if (pins[i] == 2) {
-			ftdi_bitbang_set_io(device, i, 0);
-			ftdi_bitbang_set_pin(device, i, 0);
+			err += ftdi_bitbang_set_io(device, i, 0);
+			err += ftdi_bitbang_set_pin(device, i, 0);
+		}
+		if (err != 0) {
+			fprintf(stderr, "invalid pin #%d (you are propably trying to use upper pins in bitbang mode)\n", i);
 		}
 	}
 	if (ftdi_bitbang_write(device) < 0) {
