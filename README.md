@@ -3,6 +3,7 @@
 * ftdi-bitbang
 * ftdi-control
 * ftdi-hd44780
+* ftdi-simple-capture
 ## Libraries
 * libftdi-bitbang
 * libftdi-hd44780
