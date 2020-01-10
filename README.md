@@ -80,6 +80,7 @@ Options:
   -d, --ee-description=STRING
                              write description (product) string
   -s, --ee-serial=STRING     write serial string
+  -p, --ee-bus-power=INT     bus power drawn by the device (100-500 mA)
 ```
 
 
