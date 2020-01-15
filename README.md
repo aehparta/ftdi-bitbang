@@ -70,7 +70,9 @@ Options:
   -D, --description=STRING   usb description (product) to use for opening right device, default none
   -S, --serial=STRING        usb serial to use for opening right device, default none
   -I, --interface=INTERFACE  ftx232 interface number, defaults to first
+  -U, --usbid=ID             usbid to use for opening right device (sysfs format, e.g. 1-2.3), default none
   -R, --reset                do usb reset on the device at start
+  -L, --list                 list devices that can be found with given parameters
 
   -E, --ee-erase             erase eeprom, sometimes needed if eeprom has already been initialized
   -N, --ee-init              erase and initialize eeprom with defaults
@@ -80,6 +82,9 @@ Options:
   -d, --ee-description=STRING
                              write description (product) string
   -s, --ee-serial=STRING     write serial string
+  -l, --ee-serial-len=LENGTH pad serial with randomized ascii letters and numbers to this length (upper case)
+  -x, --ee-serial-hex=LENGTH pad serial with randomized hex to this length (upper case)
+  -n, --ee-serial-dec=LENGTH pad serial with randomized numbers to this length
   -p, --ee-bus-power=INT     bus power drawn by the device (100-500 mA)
 ```
 
