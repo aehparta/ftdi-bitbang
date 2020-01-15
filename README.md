@@ -38,10 +38,10 @@ Options:
   -D, --description=STRING   usb description (product) to use for opening right device, default none
   -S, --serial=STRING        usb serial to use for opening right device, default none
   -I, --interface=INTERFACE  ftx232 interface number, defaults to first
+  -U, --usbid=ID             usbid to use for opening right device (sysfs format, e.g. 1-2.3), default none
   -R, --reset                do usb reset on the device at start
+  -L, --list                 list devices that can be found with given parameters
 
-  -m, --mode=STRING          set device bitmode, use 'bitbang' or 'mpsse', default is 'bitbang'
-                             for bitbang mode the baud rate is fixed to 1 MHz for now
   -s, --set=PIN              given pin as output and one
   -c, --clr=PIN              given pin as output and zero
   -i, --inp=PIN              given pin as input
