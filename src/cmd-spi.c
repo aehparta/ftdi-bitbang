@@ -82,10 +82,10 @@ void p_help()
 	    "  -s, --ss=PIN               SPI SS, default pin is 3\n"
 	    "  -l, --cpol1                set SPI CPOL to 1 (default 0)\n"
 	    "  -a, --cpha1                set SPI CPHA to 1 (default 0)\n"
-	    "  -d, --dec                  values from command line use decimal (default is hex)\n"
 	    "  -n, --size=INT             size of data to write, default is the count of bytes given as arguments\n"
 	    "                             if less bytes is given as arguments than this value,\n"
 	    "                             the last byte is repeated to fill the size\n"
+	    "  -d, --dec                  values use decimal, both input and printed (default is hex)\n"
 	    "  -X, --0x                   add 0x to start of each printed hex value (use only without -d)\n"
 	    "  -C, --csv                  output as csv\n"
 	    "\n"
@@ -183,10 +183,33 @@ int main(int argc, char *argv[])
 
 	/* print data */
 	if (csv) {
-		printf("send,receive\n");
+		printf("send,recv\n");
 		for (i = 0; i < size; i++) {
-			printf("%02x,%02x\n", 0, 0);
+			if (hex_or_dec) {
+				printf("%u,%u\n", out[i], in[i]);
+			} else {
+				printf("%s%02X,%s%02X\n", add_0x ? "0x" : "", out[i], add_0x ? "0x" : "", in[i]);
+			}
 		}
+	} else {
+		printf("send: ");
+		for (i = 0; i < size; i++) {
+			if (hex_or_dec) {
+				printf("%3u%s", out[i], ((i + 1) < size) ? " " : "");
+			} else {
+				printf("%s%02X%s", add_0x ? "0x" : "", out[i], ((i + 1) < size) ? " " : "");
+			}
+		}
+		printf("\n");
+		printf("recv: ");
+		for (i = 0; i < size; i++) {
+			if (hex_or_dec) {
+				printf("%3u%s", in[i], ((i + 1) < size) ? " " : "");
+			} else {
+				printf("%s%02X%s", add_0x ? "0x" : "", in[i], ((i + 1) < size) ? " " : "");
+			}
+		}
+		printf("\n");
 	}
 
 
