@@ -1,19 +1,27 @@
 # Description
+
 ## Command line tools
+
 * ftdi-bitbang
 * ftdi-control
 * ftdi-hd44780
 * ftdi-simple-capture
+* ftdi-spi *(coming, does not work yet)*
 ## Libraries
+
 * libftdi-bitbang
 * libftdi-hd44780
+
 ## Compile
+
 ```sh
 ~/ftdi-bitbang$ ./autogen.sh
 ~/ftdi-bitbang$ make
 ~/ftdi-bitbang$ make install
 ```
+
 Or in debian based platforms you can generate debian package:
+
 ```sh
 ~/ftdi-bitbang$ ./autogen.sh deb
 ~/ftdi-bitbang$ sudo dpkg -i debian/ftdi-bitbang-VERSION-BUILD-ARCH.deb
