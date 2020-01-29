@@ -1,5 +1,7 @@
 /*
- * ftdi-hd44780
+ * ftdi-spi
+ *
+ * Only bitbang mode supported for now, built-in MPSSE maybe in the future.
  *
  * License: MIT
  * Authors: Antti Partanen <aehparta@iki.fi>
@@ -80,10 +82,9 @@ int ftdi_spi_disable(struct ftdi_spi_context *spi)
 	return 0;
 }
 
-int ftdi_spi_transfer_do(struct ftdi_spi_context *spi, int data_write, int bit_count)
+int ftdi_spi_transfer_do(struct ftdi_spi_context *spi, uint8_t *data, size_t size)
 {
-	int i;
-	int data_read = 0;
+	int i, data_read, data_write, bit_count;
 
 	/* bit count to zero indexed */
 	bit_count--;
@@ -137,15 +138,14 @@ int ftdi_spi_transfer_do(struct ftdi_spi_context *spi, int data_write, int bit_c
 	return data_read;
 }
 
-int ftdi_spi_transfer(struct ftdi_spi_context *spi, int data_write, int bit_count)
+int ftdi_spi_transfer(struct ftdi_spi_context *spi, uint8_t *data, size_t size)
 {
-	int data_read = 0;
 	if (ftdi_spi_enable(spi) < 0) {
 		return -1;
 	}
-	data_read = ftdi_spi_transfer_do(spi, data_write, bit_count);
+	int err = ftdi_spi_transfer_do(spi, data, size);
 	if (ftdi_spi_disable(spi) < 0) {
 		return -1;
 	}
-	return data_read;
+	return err;
 }

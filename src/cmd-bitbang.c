@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* parse command line options */
-	if (common_options(argc, argv, opts, longopts)) {
+	if (common_options(argc, argv, opts, longopts, 0)) {
 		fprintf(stderr, "invalid command line option(s)\n");
 		p_exit(EXIT_FAILURE);
 	}

@@ -47,21 +47,21 @@ int ftdi_spi_disable(struct ftdi_spi_context *spi);
  * set ss pin active manually.
  * 
  * @param  spi        spi context
- * @param  data_write data bits to be written
- * @param  bit_count  bit count to transfer, read and write
+ * @param  data       data buffer, writes data from here and then saves read data here
+ * @param  size       size of data in bytes
  * @return            data bits read or -1 on errors
  */
-int ftdi_spi_transfer_do(struct ftdi_spi_context *spi, int data_write, int bit_count);
+int ftdi_spi_transfer_do(struct ftdi_spi_context *spi, uint8_t *data, size_t size);
 
 /**
  * Does same as ftdi_spi_transfer_do() but with automatic slave enable/disable.
  * 
  * @param  spi        spi context
- * @param  data_write data bits to be written
- * @param  bit_count  bit count to transfer, read and write
+ * @param  data       data buffer, writes data from here and then saves read data here
+ * @param  size       size of data in bytes
  * @return            data bits read or -1 on errors
  */
-int ftdi_spi_transfer(struct ftdi_spi_context *spi, int data_write, int bit_count);
+int ftdi_spi_transfer(struct ftdi_spi_context *spi, uint8_t *data, size_t size);
 
 
 #endif /* __FTDI_SPI_H__ */

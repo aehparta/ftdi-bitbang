@@ -62,7 +62,7 @@ void common_help(int argc, char *argv[])
 	p_help();
 }
 
-int common_options(int argc, char *argv[], const char opts[], struct option longopts[])
+int common_options(int argc, char *argv[], const char opts[], struct option longopts[], int need_args)
 {
 	int err = 0;
 	int longindex = 0, c;
@@ -126,7 +126,13 @@ int common_options(int argc, char *argv[], const char opts[], struct option long
 		}
 	}
 
-	if (argc < optind) {
+	if (need_args) {
+		if (argc <= optind) {
+			common_help(argc, argv);
+			p_exit(1);
+		}
+		only_list = 0;
+	} else if (argc < optind) {
 		only_list = only_list < 2 ? 0 : only_list;
 	}
 	if (only_list) {

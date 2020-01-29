@@ -52,7 +52,7 @@ void common_help(int argc, char *argv[]);
 /**
  * Parse common options.
  */
-int common_options(int argc, char *argv[], const char opts[], struct option longopts[]);
+int common_options(int argc, char *argv[], const char opts[], struct option longopts[], int need_args);
 
 /**
  * Print list of matching devices.
