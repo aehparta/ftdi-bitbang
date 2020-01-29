@@ -90,6 +90,10 @@ void p_help()
 	    "  -C, --csv                  output as csv\n"
 	    "\n"
 	    "Bitbang style SPI through FTDI FTx232 chips.\n"
+	    "\n"
+	    "Examples:\n"
+	    " transfer 4 bytes:    ftdi-spi ff 00 ff 5a\n"
+	    " same using decimals: ftdi-spi -d 255 00 255 90\n"
 	    "\n");
 }
 
