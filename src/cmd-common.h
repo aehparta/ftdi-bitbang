@@ -42,7 +42,7 @@ void p_exit(int return_code);
 /**
  * Command specific help.
  */
-void p_help();
+void p_help(void);
 
 /**
  * Print common help.
@@ -52,12 +52,12 @@ void common_help(int argc, char *argv[]);
 /**
  * Parse common options.
  */
-int common_options(int argc, char *argv[], const char opts[], struct option longopts[], int need_args);
+int common_options(int argc, char *argv[], const char opts[], struct option longopts[], int need_args, int no_opts_needed);
 
 /**
  * Print list of matching devices.
  */
-void common_ftdi_list_print();
+void common_ftdi_list_print(void);
 
 /**
  * Initialize ftdi resources.
@@ -66,7 +66,11 @@ void common_ftdi_list_print();
  * @param argv Argument array.
  * @return 0 on success, -1 on errors.
  */
-struct ftdi_context *common_ftdi_init();
+struct ftdi_context *common_ftdi_init(void);
 
+/**
+ * Read data from stdin until whitespace if it is a pipe or file ( | or < is used ).
+ */
+unsigned char *common_stdin_read(void);
 
 #endif /* __CMD_COMMON_H__ */

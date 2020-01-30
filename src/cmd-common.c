@@ -10,6 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <ctype.h>
 #include <libgen.h>
 #include <libusb.h>
 #include <errno.h>
@@ -62,7 +66,7 @@ void common_help(int argc, char *argv[])
 	p_help();
 }
 
-int common_options(int argc, char *argv[], const char opts[], struct option longopts[], int need_args)
+int common_options(int argc, char *argv[], const char opts[], struct option longopts[], int need_args, int no_opts_needed)
 {
 	int err = 0;
 	int longindex = 0, c;
@@ -135,7 +139,8 @@ int common_options(int argc, char *argv[], const char opts[], struct option long
 	} else if (argc < optind) {
 		only_list = only_list < 2 ? 0 : only_list;
 	}
-	if (only_list) {
+
+	if (only_list == 2 || (only_list == 1 && !no_opts_needed)) {
 		common_ftdi_list_print();
 		p_exit(0);
 	}
@@ -314,3 +319,33 @@ struct ftdi_context *common_ftdi_init()
 	return ftdi;
 }
 
+unsigned char *common_stdin_read(void)
+{
+	static unsigned char data[65536];
+	struct stat st;
+	size_t i;
+	int c;
+
+	if (fstat(fileno(stdin), &st)) {
+		return NULL;
+	}
+	if (!S_ISFIFO(st.st_mode) && !S_ISREG(st.st_mode)) {
+		return NULL;
+	}
+
+	/* remove whitespaces from start of data*/
+	for (c = fgetc(stdin); isspace(c); c = fgetc(stdin));
+
+	/* read line */
+	for (i = 0; c >= 0 && c <= 255 && i < (sizeof(data) - 1) && !isspace(c); i++, c = fgetc(stdin)) {
+		data[i] = (unsigned char)c;
+	}
+
+	if (i == 0) {
+		return NULL;
+	}
+
+	data[i] = '\0';
+
+	return data;
+}

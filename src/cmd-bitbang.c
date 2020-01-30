@@ -108,16 +108,45 @@ int p_options(int c, char *optarg)
 	return 0;
 }
 
+int read_pins(int pin)
+{
+	if (pin == -1) {
+		int pins = ftdi_bitbang_read(device);
+		if (pins < 0) {
+			fprintf(stderr, "failed reading pin states\n");
+			p_exit(EXIT_FAILURE);
+		}
+		printf("%04x\n", pins);
+	} else if (pin >= 0 && pin < 8) {
+		int pins = ftdi_bitbang_read_low(device);
+		if (pins < 0) {
+			fprintf(stderr, "failed reading pin state\n");
+			p_exit(EXIT_FAILURE);
+		}
+		printf("%d\n", pins & (1 << pin) ? 1 : 0);
+	} else if (pin > 7 && pin < 16) {
+		int pins = ftdi_bitbang_read_high(device);
+		if (pins < 0) {
+			fprintf(stderr, "failed reading pin state\n");
+			p_exit(EXIT_FAILURE);
+		}
+		pin -= 8;
+		printf("%d\n", pins & (1 << pin) ? 1 : 0);
+	}
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
-	int err = 0, i;
+	int err = 0, i, changed = 0;
 
 	for (i = 0; i < 16; i++) {
 		pins[i] = -1;
 	}
 
 	/* parse command line options */
-	if (common_options(argc, argv, opts, longopts, 0)) {
+	if (common_options(argc, argv, opts, longopts, 0, 1)) {
 		fprintf(stderr, "invalid command line option(s)\n");
 		p_exit(EXIT_FAILURE);
 	}
@@ -141,9 +170,11 @@ int main(int argc, char *argv[])
 		if (pins[i] == 0 || pins[i] == 1) {
 			err += ftdi_bitbang_set_io(device, i, 1);
 			err += ftdi_bitbang_set_pin(device, i, pins[i] ? 1 : 0);
+			changed++;
 		} else if (pins[i] == 2) {
 			err += ftdi_bitbang_set_io(device, i, 0);
 			err += ftdi_bitbang_set_pin(device, i, 0);
+			changed++;
 		}
 		if (err != 0) {
 			fprintf(stderr, "invalid pin #%d (you are propably trying to use upper pins in bitbang mode)\n", i);
@@ -154,31 +185,32 @@ int main(int argc, char *argv[])
 		p_exit(EXIT_FAILURE);
 	}
 
-	/* read pins */
-	if (read_pin == -1) {
-		int pins = ftdi_bitbang_read(device);
-		if (pins < 0) {
-			fprintf(stderr, "failed reading pin states\n");
-			p_exit(EXIT_FAILURE);
-		}
-		printf("%04x\n", pins);
-	} else if (read_pin > 0 && read_pin < 8) {
-		int pins = ftdi_bitbang_read_low(device);
-		if (pins < 0) {
-			fprintf(stderr, "failed reading pin state\n");
-			p_exit(EXIT_FAILURE);
-		}
-		printf("%d\n", pins & (1 << read_pin) ? 1 : 0);
-	} else if (read_pin > 7 && read_pin < 16) {
-		int pins = ftdi_bitbang_read_high(device);
-		if (pins < 0) {
-			fprintf(stderr, "failed reading pin state\n");
-			p_exit(EXIT_FAILURE);
-		}
-		read_pin -= 8;
-		printf("%d\n", pins & (1 << read_pin) ? 1 : 0);
+	/* read pin(s) if set so in options */
+	if (read_pin > -2) {
+		read_pins(read_pin);
+		changed++;
 	}
 
+	/* apply arguments */
+	// for (int i = optind; i < argc; i++) {
+	// 	printf("use: %s\n", argv[i]);
+	// }
+
+	/* apply stdin */
+	for (;;) {
+		char *line = common_stdin_read();
+		if (!line) {
+			break;
+		}
+		printf("line: \"%s\"\n", line);
+		changed++;
+	}
+
+	/* print error if nothing was done */
+	if (!changed) {
+		fprintf(stderr, "nothing done, no actions given.\n");
+		p_exit(EXIT_FAILURE);
+	}
 
 	p_exit(EXIT_SUCCESS);
 	return EXIT_SUCCESS;
