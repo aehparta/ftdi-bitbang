@@ -319,13 +319,12 @@ struct ftdi_context *common_ftdi_init()
 	return ftdi;
 }
 
-unsigned char *common_stdin_read(void)
+char *common_stdin_readline(void)
 {
-	static unsigned char data[65536];
+	static char data[65536];
 	struct stat st;
-	size_t i;
-	int c;
 
+	/* check that stdin is fifo or regular file */
 	if (fstat(fileno(stdin), &st)) {
 		return NULL;
 	}
@@ -333,19 +332,33 @@ unsigned char *common_stdin_read(void)
 		return NULL;
 	}
 
-	/* remove whitespaces from start of data*/
-	for (c = fgetc(stdin); isspace(c); c = fgetc(stdin));
-
-	/* read line */
-	for (i = 0; c >= 0 && c <= 255 && i < (sizeof(data) - 1) && !isspace(c); i++, c = fgetc(stdin)) {
-		data[i] = (unsigned char)c;
+	/* return next line that is not a comment */
+	while (fgets(data, sizeof(data), stdin)) {
+		if (data[0] != ';' && data[0] != '#') {
+			return data;
+		}
 	}
 
-	if (i == 0) {
+	return NULL;
+}
+
+char **common_stdin_parseline(void)
+{
+	static char *parts[32];
+	int i = 0;
+
+	/* read line */
+	char *data = common_stdin_readline();
+	if (!data) {
 		return NULL;
 	}
 
-	data[i] = '\0';
+	/* break into peaces and parse */
+	for (parts[i] = strtok(data, ","); i < 32 && parts[i]; parts[++i] = strtok(NULL, ",")) {
+		/* remove whitespaces */
+		for (; isspace(parts[i][0]); parts[i] = &parts[i][1]);
+		for (int j = strlen(parts[i]) - 1; j >= 0 && isspace(parts[i][j]); parts[i][j--] = '\0');
+	}
 
-	return data;
+	return parts;
 }

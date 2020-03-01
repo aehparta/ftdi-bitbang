@@ -20,7 +20,7 @@
 #include "ftdi-bitbang.h"
 
 
-struct ftdi_bitbang_context *ftdi_bitbang_init(struct ftdi_context *ftdi, int mode, int load_state)
+struct ftdi_bitbang_context *ftdi_bitbang_init(struct ftdi_context *ftdi, int mode, int load_state, int baudrate)
 {
 	struct ftdi_bitbang_context *dev = malloc(sizeof(struct ftdi_bitbang_context));
 	if (!dev) {
@@ -40,6 +40,10 @@ struct ftdi_bitbang_context *ftdi_bitbang_init(struct ftdi_context *ftdi, int mo
 		dev->state.l_changed = 0xff;
 		dev->state.h_changed = 0xff;
 	}
+	if (dev->state.baudrate < 1 || (baudrate > 0 && baudrate <= 20e6)) {
+		/* baudrate, defaults to 1MHz if not given */
+		dev->state.baudrate = baudrate > 0 ? baudrate : 1e6;
+	}
 
 	if (mode != BITMODE_MPSSE &&
 	        (mode == BITMODE_BITBANG ||
@@ -48,8 +52,7 @@ struct ftdi_bitbang_context *ftdi_bitbang_init(struct ftdi_context *ftdi, int mo
 		/* do not actually set bitmode here, might not know full state yet */
 		dev->state.mode = BITMODE_BITBANG;
 		/* set baud rate */
-		/** @todo add support for changing baud rate */
-		if (ftdi_set_baudrate(dev->ftdi, 1e6)) {
+		if (ftdi_set_baudrate(dev->ftdi, dev->state.baudrate)) {
 			free(dev);
 			return  NULL;
 		}

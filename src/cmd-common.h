@@ -22,7 +22,7 @@
     { "interface", required_argument, NULL, 'I' }, \
     { "usbid", required_argument, NULL, 'U' }, \
     { "reset", no_argument, NULL, 'R' }, \
-    { "list", no_argument, NULL, 'L' },
+    { "list", no_argument, NULL, 'L' }, \
 
 
 /**
@@ -69,8 +69,14 @@ void common_ftdi_list_print(void);
 struct ftdi_context *common_ftdi_init(void);
 
 /**
- * Read data from stdin until whitespace if it is a pipe or file ( | or < is used ).
+ * Read line from stdin if it is a pipe or file ( | or < is used ).
  */
-unsigned char *common_stdin_read(void);
+char *common_stdin_readline(void);
+
+/**
+ * Parse single line from stdin. Return array of parts with whitespaces removed and using comma as separator.
+ */
+char **common_stdin_parseline(void);
+
 
 #endif /* __CMD_COMMON_H__ */

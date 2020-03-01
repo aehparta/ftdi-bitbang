@@ -20,13 +20,15 @@ struct ftdi_bitbang_state {
 	uint8_t h_io;
 	/* BITMODE_BITBANG or BITMODE_MPSSE */
 	int mode;
+	/* baudrate */
+	int baudrate;
 };
 struct ftdi_bitbang_context {
 	struct ftdi_context *ftdi;
 	struct ftdi_bitbang_state state;
 };
 
-struct ftdi_bitbang_context *ftdi_bitbang_init(struct ftdi_context *ftdi, int mode, int load_state);
+struct ftdi_bitbang_context *ftdi_bitbang_init(struct ftdi_context *ftdi, int mode, int load_state, int baudrate);
 void ftdi_bitbang_free(struct ftdi_bitbang_context *dev);
 
 int ftdi_bitbang_set_pin(struct ftdi_bitbang_context *dev, int bit, int value);

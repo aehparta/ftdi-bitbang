@@ -12,10 +12,11 @@
 #include "ftdi-bitbang.h"
 #include "cmd-common.h"
 
-const char opts[] = COMMON_SHORT_OPTS "m:s:c:i:r";
+const char opts[] = COMMON_SHORT_OPTS "m:b:s:c:i:r:";
 struct option longopts[] = {
 	COMMON_LONG_OPTS
 	{ "mode", required_argument, NULL, 'm' },
+	{ "baudrate", required_argument, NULL, 'b' },
 	{ "set", required_argument, NULL, 's' },
 	{ "clr", required_argument, NULL, 'c' },
 	{ "inp", required_argument, NULL, 'i' },
@@ -31,6 +32,7 @@ int pins[16];
 struct ftdi_context *ftdi = NULL;
 struct ftdi_bitbang_context *device = NULL;
 int bitmode = 0;
+int baudrate = 0;
 
 /**
  * Free resources allocated by process, quit using libraries, terminate
@@ -55,7 +57,7 @@ void p_help()
 {
 	printf(
 	    "  -m, --mode=STRING          set device bitmode, use 'bitbang' or 'mpsse', default is 'bitbang'\n"
-	    "                             for bitbang mode the baud rate is fixed to 1 MHz for now\n"
+	    "  -b, --baudrate=INT         set baudrate to given, default is 1MHz\n"
 	    "  -s, --set=PIN              given pin as output and one\n"
 	    "  -c, --clr=PIN              given pin as output and zero\n"
 	    "  -i, --inp=PIN              given pin as input\n"
@@ -79,6 +81,13 @@ int p_options(int c, char *optarg)
 		} else {
 			fprintf(stderr, "invalid bitmode\n");
 			return -1;
+		}
+		return 1;
+	case 'b':
+		baudrate = atoi(optarg);
+		if (baudrate < 1 || baudrate > 20e6) {
+			fprintf(stderr, "invalid baudrate, maximum is 20MHz\n");
+			p_exit(1);
 		}
 		return 1;
 	case 'c':
@@ -139,9 +148,9 @@ int read_pins(int pin)
 
 int main(int argc, char *argv[])
 {
-	int err = 0, i, changed = 0;
+	int err = 0, changed = 0;
 
-	for (i = 0; i < 16; i++) {
+	for (int i = 0; i < 16; i++) {
 		pins[i] = -1;
 	}
 
@@ -158,14 +167,14 @@ int main(int argc, char *argv[])
 	}
 
 	/* initialize to bitbang mode */
-	device = ftdi_bitbang_init(ftdi, bitmode, 1);
+	device = ftdi_bitbang_init(ftdi, bitmode, 1, baudrate);
 	if (!device) {
 		fprintf(stderr, "ftdi_bitbang_init() failed\n");
 		p_exit(EXIT_FAILURE);
 	}
 
 	/* write changes */
-	for (i = 0; i < 16; i++) {
+	for (int i = 0; i < 16; i++) {
 		int err = 0;
 		if (pins[i] == 0 || pins[i] == 1) {
 			err += ftdi_bitbang_set_io(device, i, 1);
@@ -198,17 +207,21 @@ int main(int argc, char *argv[])
 
 	/* apply stdin */
 	for (;;) {
-		char *line = common_stdin_read();
-		if (!line) {
+		char **parts = common_stdin_parseline();
+		if (!parts) {
 			break;
 		}
-		printf("line: \"%s\"\n", line);
+		printf("line:");
+		for (int i = 0; parts[i]; i++) {
+			printf(" '%s'", parts[i]);
+		}
+		printf("\n");
 		changed++;
 	}
 
 	/* print error if nothing was done */
 	if (!changed) {
-		fprintf(stderr, "nothing done, no actions given.\n");
+		fprintf(stderr, "nothing done, no actions given\n");
 		p_exit(EXIT_FAILURE);
 	}
 

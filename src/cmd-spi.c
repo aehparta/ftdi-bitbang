@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* initialize to bitbang mode */
-	device = ftdi_bitbang_init(ftdi, bitmode, 1);
+	device = ftdi_bitbang_init(ftdi, bitmode, 1, 0);
 	if (!device) {
 		fprintf(stderr, "ftdi_bitbang_init() failed\n");
 		p_exit(EXIT_FAILURE);
