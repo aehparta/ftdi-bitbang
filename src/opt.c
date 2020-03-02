@@ -29,23 +29,33 @@ struct opt_option opt_all[] = {
 	},
 	{ 'D', "description", required_argument, 0, NULL, NULL, "usb description (product) to use for opening right device" },
 	{ 'S', "serial", required_argument, 0, NULL, NULL, "usb serial to use for opening right device" },
-	{ 'I', "interface", required_argument, 0, NULL, NULL, "ftx232 interface number, defaults to first" },
+	{ 'I', "interface", required_argument, 0, "1", NULL, "ftx232 interface number, defaults to first" },
 	{ 'U', "usbid", required_argument, 0, NULL, NULL, "usbid to use for opening right device (sysfs format, e.g. 1-2.3)" },
 	{ 'R', "reset", no_argument, 0, NULL, NULL, "do usb reset on the device at start" },
 	{ 'L', "list", no_argument, 0, NULL, NULL, "list devices that can be found with given parameters" },
+	{ 'M', "mode", required_argument, 0, "bitbang", NULL, "set device bitmode, use 'bitbang' or 'mpsse'" },
+	{ 'B', "baudrate", required_argument, 0, NULL, NULL, "set device baudrate, will default to what ever the device is using" },
 
 	/* ftdi-control only */
 	{ 'E', "ee-erase", no_argument, 0, NULL, NULL, "erase eeprom, sometimes needed if eeprom has already been initialized" },
 	{ 'N', "ee-init", no_argument, 0, NULL, NULL, "erase and initialize eeprom with defaults" },
-	{ 'o', "ee-decode", no_argument, 0, NULL, NULL, "read eeprom and print decoded information" },
-	{ 'm', "ee-manufacturer", required_argument, 0, NULL, NULL, "write manufacturer string" },
-	{ 'd', "ee-description", required_argument, 0, NULL, NULL, "write description (product) string" },
-	{ 's', "ee-serial", required_argument, 0, NULL, NULL, "write serial string" },
-	{ 'l', "ee-serial-len", required_argument, 0, NULL, NULL, "pad serial with randomized ascii letters and numbers to this length (upper case)" },
-	{ 'x', "ee-serial-hex", required_argument, 0, NULL, NULL, "pad serial with randomized hex to this length (upper case)" },
-	{ 'n', "ee-serial-dec", required_argument, 0, NULL, NULL, "pad serial with randomized numbers to this length" },
-	{ 'p', "ee-bus-power", required_argument, 0, NULL, NULL, "bus power drawn by the device (100-500 mA)" },
-	{ 'p', "ee-bus-power", required_argument, 0, NULL, NULL, "bus power drawn by the device (100-500 mA)" },
+	{ 'O', "ee-decode", no_argument, 0, NULL, NULL, "read eeprom and print decoded information" },
+	{ 'G', "ee-manufacturer", required_argument, 0, NULL, NULL, "write manufacturer string" },
+	{ 'T', "ee-description", required_argument, 0, NULL, NULL, "write description (product) string" },
+	{ 'Z', "ee-serial", required_argument, 0, NULL, NULL, "write serial string" },
+	{ 'W', "ee-serial-len", required_argument, 0, NULL, NULL, "pad serial with randomized ascii letters and numbers to this length (upper case)" },
+	{ 'X', "ee-serial-hex", required_argument, 0, NULL, NULL, "pad serial with randomized hex to this length (upper case)" },
+	{ 'C', "ee-serial-dec", required_argument, 0, NULL, NULL, "pad serial with randomized numbers to this length" },
+	{ 'A', "ee-bus-power", required_argument, 0, NULL, NULL, "bus power drawn by the device (100-500 mA)" },
+
+	/* ftdi-hd44780 only */
+	{ '4', "d4", required_argument, 0, NULL, NULL, "data pin 4, default pin is 0" },
+	{ '5', "d5", required_argument, 0, NULL, NULL, "data pin 5, default pin is 1" },
+	{ '6', "d6", required_argument, 0, NULL, NULL, "data pin 6, default pin is 2" },
+	{ '7', "d7", required_argument, 0, NULL, NULL, "data pin 7, default pin is 3" },
+	{ 'e', "en", required_argument, 0, NULL, NULL, "enable pin, default pin is 4" },
+	{ 'r', "rw", required_argument, 0, NULL, NULL, "read/write pin, default pin is 5" },
+	{ 's', "rs", required_argument, 0, NULL, NULL, "register select pin, default pin is 6" },
 
 	{ 0, 0, 0, 0, 0, 0, 0 }
 };
@@ -58,13 +68,15 @@ int opt_init(char *use)
 	opts_in_use = use ? strdup(use) : NULL;
 
 	/* for checking overlapping options */
-	// for (int i = 0; opt_all[i].name; i++) {
-	// 	for (int j = 0; opt_all[j].name; j++) {
-	// 		if (opt_all[i].short_name == opt_all[j].short_name && i != j) {
-	// 			printf("overlapping short option: %c\n", opt_all[i].short_name);
-	// 		}
-	// 	}
-	// }
+#ifdef DEBUG
+	for (int i = 0; opt_all[i].name; i++) {
+		for (int j = 0; opt_all[j].name; j++) {
+			if (opt_all[i].short_name == opt_all[j].short_name && i != j) {
+				printf("overlapping short option: %c\n", opt_all[i].short_name);
+			}
+		}
+	}
+#endif
 
 	return 0;
 }
@@ -93,7 +105,7 @@ int opt_set_callback(int short_name, int (*callback)(int short_name, char *value
 	return -1;
 }
 
-int opt_parse_single(struct opt_option *opt)
+int opt_parse_single(struct opt_option * opt)
 {
 	/* if help was asked, show and exit immediately */
 	if (opt->short_name == 'h') {

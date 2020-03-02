@@ -1,22 +1,24 @@
 
-BUILD ?= ftdi-bitbang
-
+BUILD ?= ftdi-bitbang ftdi-control
 CFLAGS += -Os -std=c11 -D_GNU_SOURCE -Wall
-LDFLAGS = 
+LDFLAGS += 
 
-BUILDDIR = ./build
+ftdi-bitbang_SRC = src/ftdi-bitbang-cmd.c src/opt.c
+ftdi-control_SRC = src/ftdi-control-cmd.c src/opt.c
 
 # no need to touch things
+BUILDDIR = ./build
 CC = gcc
+REMOVE = rm
 OBJ_EXT = .o
 
-# sources
-ftdi-bitbang_SRC = src/ftdi-bitbang-cmd.c src/opt.c
-
-# object files from sources
-ftdi_bitbang_OBJ = $(SRC:%.c=%.o)
+.PHONY: all clean
 
 all:: $(BUILD)
+
+clean:
+	$(REMOVE) -rf $(BUILDDIR)
+	$(REMOVE) -f $(BUILD)
 
 $(BUILDDIR)/%$(OBJ_EXT): %.c
 	@mkdir -p `dirname $@`
