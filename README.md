@@ -1,6 +1,6 @@
 # Description
 
-***NOTE:*** Current master branch (version 1) will not get any updates anymore. I am working on version 2 of these tools and will release them to master branch when I am happy with them.
+***NOTE:*** Current master branch (version 1) will not get any updates anymore. I am working on version 2 of these tools since I got fed up with the hard maintainability of the old code written over last decade. I will release the new version to master branch when I am happy with the new code.
 
 ## Command line tools
 
