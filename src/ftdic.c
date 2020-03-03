@@ -90,3 +90,8 @@ int ftdic_init(void)
 
 	return 0;
 }
+
+int ftdic_list(void)
+{
+	return 0;
+}

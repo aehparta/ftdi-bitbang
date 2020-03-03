@@ -5,8 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <getopt.h>
-#include <math.h>
 #include "opt.h"
 
 
@@ -16,103 +14,37 @@
 // #define OPT_PARSING_FAILED_ACTION() do { return -1; } while (0)
 
 #define OPT_IF_GET(CODE) \
-	for (int i = 0; opt_all[i].name; i++) { \
-		if (opts_in_use && !strchr(opts_in_use, opt_all[i].short_name)) { continue; } \
-		if (opt_all[i].short_name == short_name) { CODE; } \
+	for (int i = 0; opts[i].name; i++) { \
+		if (opts_in_use && !strchr(opts_in_use, opts[i].short_name)) { continue; } \
+		if (opts[i].short_name == short_name) { CODE; } \
 	}
 
-enum {
-	OPT_FILTER_NONE,
-	OPT_FILTER_STR,
-	OPT_FILTER_INT,
-	OPT_FILTER_NUM,
-	OPT_FILTER_HEX,
-};
+/* internal functions */
+static int opt_parse_single(struct opt_option *opt);
 
-struct opt_filter {
-	int type;
-	double min;
-	double max;
-	const char **accept;
-};
-
-struct opt_option {
-	int short_name;
-	const char *name;
-	int has_arg;
-	int used; /* zero or less when not used (-1 when default set and value should be freed) */
-	char *value;
-	int (*callback)(int short_name, char *value);
-	const char *description;
-	struct opt_filter filter;
-};
-
-const char *opt_M_accept[] = { "bitbang", "mpsse", NULL };
-
-struct opt_option opt_all[] = {
-	{ 'h', "help", no_argument, 0, NULL, NULL, "display this help and exit", { 0 } },
-	{
-		'V', "vid", required_argument, 0, "0", NULL, "usb vendor id",
-		{ OPT_FILTER_HEX, 0x0000, 0xffff }
-	},
-	{
-		'P', "pid", required_argument, 0, "0", NULL,
-		"usb product id\n"
-		"when vid and pid are zero, any first ftdi device found is used",
-		{ OPT_FILTER_HEX, 0x0000, 0xffff }
-	},
-	{ 'D', "description", required_argument, 0, NULL, NULL, "usb description (product) to use for opening right device", { 0 } },
-	{ 'S', "serial", required_argument, 0, NULL, NULL, "usb serial to use for opening right device", { 0 } },
-	{
-		'I', "interface", required_argument, 0, "1", NULL, "ftx232 interface number, defaults to first",
-		{ OPT_FILTER_INT, 1, 4 }
-	},
-	{ 'U', "usbid", required_argument, 0, NULL, NULL, "usbid to use for opening right device (sysfs format, e.g. 1-2.3)", { 0 } },
-	{ 'R', "reset", no_argument, 0, NULL, NULL, "do usb reset on the device at start", { 0 } },
-	{ 'L', "list", no_argument, 0, NULL, NULL, "list devices that can be found with given parameters", { 0 } },
-	{
-		'M', "mode", required_argument, 0, "bitbang", NULL, "set device bitmode, use 'bitbang' or 'mpsse'",
-		{ OPT_FILTER_STR, NAN, NAN, opt_M_accept }
-	},
-	{ 'B', "baudrate", required_argument, 0, NULL, NULL, "set device baudrate, will default to what ever the device is using", { OPT_FILTER_INT, 0, 20e6 } },
-
-	/* ftdi-control only */
-	{ 'E', "ee-erase", no_argument, 0, NULL, NULL, "erase eeprom, sometimes needed if eeprom has already been initialized", { 0 } },
-	{ 'N', "ee-init", no_argument, 0, NULL, NULL, "erase and initialize eeprom with defaults", { 0 } },
-	{ 'O', "ee-decode", no_argument, 0, NULL, NULL, "read eeprom and print decoded information", { 0 } },
-	{ 'G', "ee-manufacturer", required_argument, 0, NULL, NULL, "write manufacturer string", { 0 } },
-	{ 'T', "ee-description", required_argument, 0, NULL, NULL, "write description (product) string", { 0 } },
-	{ 'Z', "ee-serial", required_argument, 0, NULL, NULL, "write serial string", { 0 } },
-	{ 'W', "ee-serial-len", required_argument, 0, NULL, NULL, "pad serial with randomized ascii letters and numbers to this length (upper case)", { 0 } },
-	{ 'X', "ee-serial-hex", required_argument, 0, NULL, NULL, "pad serial with randomized hex to this length (upper case)", { 0 } },
-	{ 'C', "ee-serial-dec", required_argument, 0, NULL, NULL, "pad serial with randomized numbers to this length", { 0 } },
-	{ 'A', "ee-bus-power", required_argument, 0, NULL, NULL, "bus power drawn by the device (100-500 mA)", { 0 } },
-
-	/* ftdi-hd44780 only */
-	{ '4', "d4", required_argument, 0, NULL, NULL, "data pin 4, default pin is 0", { OPT_FILTER_INT, 0, 15 } },
-	{ '5', "d5", required_argument, 0, NULL, NULL, "data pin 5, default pin is 1", { OPT_FILTER_INT, 0, 15 } },
-	{ '6', "d6", required_argument, 0, NULL, NULL, "data pin 6, default pin is 2", { OPT_FILTER_INT, 0, 15 } },
-	{ '7', "d7", required_argument, 0, NULL, NULL, "data pin 7, default pin is 3", { OPT_FILTER_INT, 0, 15 } },
-	{ 'e', "en", required_argument, 0, NULL, NULL, "enable pin, default pin is 4", { OPT_FILTER_INT, 0, 15 } },
-	{ 'r', "rw", required_argument, 0, NULL, NULL, "read/write pin, default pin is 5", { OPT_FILTER_INT, 0, 15 } },
-	{ 's', "rs", required_argument, 0, NULL, NULL, "register select pin, default pin is 6", { OPT_FILTER_INT, 0, 15 } },
-
-	{ 0, 0, 0, 0, 0, 0, 0, { 0 } }
-};
+/* all options */
+static struct opt_option *opts = NULL;
+/* list of short option names to define actually used options or NULL for all */
+static char *opts_in_use = NULL;
+/* prepend help with this */
+static const char *opt_help_prepend = NULL;
+/* append this to help */
+static const char *opt_help_append = NULL;
 
 
-char *opts_in_use = NULL;
-
-int opt_init(char *use)
+int opt_init(struct opt_option *o, const char *u, const char *help_prepend, const char *help_append)
 {
-	opts_in_use = use ? strdup(use) : NULL;
+	opts = o;
+	opts_in_use = u ? strdup(u) : NULL;
+	opt_help_prepend = help_prepend;
+	opt_help_append = help_append;
 
 	/* for checking overlapping options */
 #ifdef DEBUG
-	for (int i = 0; opt_all[i].name; i++) {
-		for (int j = 0; opt_all[j].name; j++) {
-			if (opt_all[i].short_name == opt_all[j].short_name && i != j) {
-				printf("overlapping short option: %c\n", opt_all[i].short_name);
+	for (int i = 0; opts[i].name; i++) {
+		for (int j = 0; opts[j].name; j++) {
+			if (opts[i].short_name == opts[j].short_name && i != j) {
+				printf("overlapping short option: %c\n", opts[i].short_name);
 			}
 		}
 	}
@@ -124,28 +56,158 @@ int opt_init(char *use)
 void opt_quit(void)
 {
 	opts_in_use ? free(opts_in_use) : NULL;
-	for (int i = 0; opt_all[i].name; i++) {
-		if (opt_all[i].used != 0 && opt_all[i].value) {
-			free(opt_all[i].value);
+	for (int i = 0; opts[i].name; i++) {
+		if (opts[i].used != 0 && opts[i].value) {
+			free(opts[i].value);
 		}
 	}
 }
 
 int opt_set_callback(int short_name, int (*callback)(int short_name, char *value))
 {
-	for (int i = 0; opt_all[i].name; i++) {
-		if (opts_in_use && !strchr(opts_in_use, opt_all[i].short_name)) {
+	for (int i = 0; opts[i].name; i++) {
+		if (opts_in_use && !strchr(opts_in_use, opts[i].short_name)) {
 			continue;
 		}
-		if (opt_all[i].short_name == short_name) {
-			opt_all[i].callback = callback;
+		if (opts[i].short_name == short_name) {
+			opts[i].callback = callback;
 			return 0;
 		}
 	}
 	return -1;
 }
 
-int opt_parse_single(struct opt_option *opt)
+int opt_parse(int argc, char *argv[])
+{
+	int err = 0;
+
+	/* generate list of available options */
+	size_t n = 0;
+	if (opts_in_use) {
+		n = strlen(opts_in_use);
+	} else {
+		for (n = 0; opts[n].name; n++);
+	}
+	char *shortopts = malloc(n * 2 + 1);
+	struct option *longopts = malloc((n + 1) * sizeof(struct option));
+
+	memset(shortopts, 0, n * 2 + 1);
+	memset(longopts, 0, (n + 1) * sizeof(struct option));
+
+	for (int i = 0, j = 0; opts[i].name; i++) {
+		if (opts_in_use && !strchr(opts_in_use, opts[i].short_name)) {
+			continue;
+		}
+
+		/* add to short opts */
+		shortopts[strlen(shortopts)] = opts[i].short_name;
+		if (opts[i].has_arg == required_argument) {
+			strcat(shortopts, ":");
+		}
+
+		/* add to long opts */
+		longopts[j].name = opts[i].name;
+		longopts[j].has_arg = opts[i].has_arg;
+		longopts[j].flag = NULL;
+		longopts[j].val = opts[i].short_name;
+		j++;
+	}
+
+	/* parse */
+	int index = 0, c;
+	while ((c = getopt_long(argc, argv, shortopts, longopts, &index)) > -1) {
+		/* unfortunately this loop is required every time */
+		for (int i = 0; opts[i].name; i++) {
+			if (opts[i].short_name == c && opt_parse_single(&opts[i])) {
+				err = -1;
+				goto out;
+			}
+		}
+	}
+
+out:
+	free(shortopts);
+	free(longopts);
+	return err;
+}
+
+void opt_help(void)
+{
+	if (opt_help_prepend) {
+		printf("%s\n\n", opt_help_prepend);
+	}
+
+	printf("Options:\n");
+	for (int i = 0; opts[i].name; i++) {
+		if (opts_in_use && !strchr(opts_in_use, opts[i].short_name)) {
+			continue;
+		}
+
+		int n = printf("  -%c, --%s%s", opts[i].short_name, opts[i].name, opts[i].has_arg != required_argument ? "" : "=VALUE");
+		n < 30 ? printf("%*s", 30 - n, "") : printf("\n");
+
+		/* print description */
+		char *orig = strdup(opts[i].description);
+		char *p = orig;
+		for (int pad = n < 30 ? 0 : 30; p; pad = 30) {
+			printf("%*s%s\n", pad, "", strsep(&p, "\n"));
+		}
+		free(orig);
+
+		/* print default if set */
+		if (opts[i].used <= 0 && opts[i].value) {
+			printf("%*s(default: %s)\n", 30, "", opts[i].value);
+		}
+	}
+
+	if (opt_help_append) {
+		printf("\n%s\n", opt_help_append);
+	}
+}
+
+int opt_used(int short_name)
+{
+	OPT_IF_GET({
+		return opts[i].used > 0;
+	});
+	return 0;
+}
+
+int opt_set(int short_name, char *value)
+{
+	OPT_IF_GET({
+		opts[i].value = strdup(value);
+		opts[i].used = -1;
+		return 0;
+	});
+	return -1;
+}
+
+char *opt_get(int short_name)
+{
+	OPT_IF_GET({
+		return opts[i].value;
+	});
+	return NULL;
+}
+
+int opt_get_int(int short_name)
+{
+	OPT_IF_GET({
+		if (opts[i].used < 1 && !opts[i].value)
+		{
+			return 0;
+		}
+		return (int)strtol(opts[i].value, NULL, 0);
+	});
+	return 0;
+}
+
+
+/* internals */
+
+
+static int opt_parse_single(struct opt_option *opt)
 {
 	/* if help was asked, show and exit immediately */
 	if (opt->short_name == 'h') {
@@ -183,113 +245,3 @@ int opt_parse_single(struct opt_option *opt)
 	return 0;
 }
 
-int opt_parse(int argc, char *argv[])
-{
-	int err = 0;
-
-	/* generate list of available options */
-	size_t n = opts_in_use ? strlen(opts_in_use) : sizeof(opt_all) / sizeof(*opt_all) - 1;
-	char *shortopts = malloc(n * 2 + 1);
-	struct option *longopts = malloc((n + 1) * sizeof(struct option));
-
-	memset(shortopts, 0, n * 2 + 1);
-	memset(longopts, 0, (n + 1) * sizeof(struct option));
-
-	for (int i = 0, j = 0; opt_all[i].name; i++) {
-		if (opts_in_use && !strchr(opts_in_use, opt_all[i].short_name)) {
-			continue;
-		}
-
-		/* add to short opts */
-		shortopts[strlen(shortopts)] = opt_all[i].short_name;
-		if (opt_all[i].has_arg == required_argument) {
-			strcat(shortopts, ":");
-		}
-
-		/* add to long opts */
-		longopts[j].name = opt_all[i].name;
-		longopts[j].has_arg = opt_all[i].has_arg;
-		longopts[j].flag = NULL;
-		longopts[j].val = opt_all[i].short_name;
-		j++;
-	}
-
-	/* parse */
-	int index = 0, c;
-	while ((c = getopt_long(argc, argv, shortopts, longopts, &index)) > -1) {
-		/* unfortunately this loop is required every time */
-		for (int i = 0; opt_all[i].name; i++) {
-			if (opt_all[i].short_name == c && opt_parse_single(&opt_all[i])) {
-				err = -1;
-				goto out;
-			}
-		}
-	}
-
-out:
-	free(shortopts);
-	free(longopts);
-	return err;
-}
-
-void opt_help(void)
-{
-	for (int i = 0; opt_all[i].name; i++) {
-		if (opts_in_use && !strchr(opts_in_use, opt_all[i].short_name)) {
-			continue;
-		}
-
-		int n = printf("  -%c, --%s%s", opt_all[i].short_name, opt_all[i].name, opt_all[i].has_arg != required_argument ? "" : "=VALUE");
-		n < 30 ? printf("%*s", 30 - n, "") : printf("\n");
-
-		/* print description */
-		char *orig = strdup(opt_all[i].description);
-		char *p = orig;
-		for (int pad = n < 30 ? 0 : 30; p; pad = 30) {
-			printf("%*s%s\n", pad, "", strsep(&p, "\n"));
-		}
-		free(orig);
-
-		/* print default if set */
-		if (opt_all[i].used <= 0 && opt_all[i].value) {
-			printf("%*s(default: %s)\n", 30, "", opt_all[i].value);
-		}
-	}
-}
-
-int opt_used(int short_name)
-{
-	OPT_IF_GET({
-		return opt_all[i].used > 0;
-	});
-	return 0;
-}
-
-int opt_set(int short_name, char *value)
-{
-	OPT_IF_GET({
-		opt_all[i].value = strdup(value);
-		opt_all[i].used = -1;
-		return 0;
-	});
-	return -1;
-}
-
-char *opt_get(int short_name)
-{
-	OPT_IF_GET({
-		return opt_all[i].value;
-	});
-	return NULL;
-}
-
-int opt_get_int(int short_name)
-{
-	OPT_IF_GET({
-		if (opt_all[i].used < 1 && !opt_all[i].value) {
-			return 0;
-		}
-		return (int)strtol(opt_all[i].value, NULL, 0);
-	});
-	return 0;
-}

@@ -1,6 +1,9 @@
 
 #include <stdio.h>
-#include "opt.h"
+#include "opt-all.h"
+
+const char *prepend = "help prepend\nyes.";
+const char *append = "help append\nyes.";
 
 int cb(int c, char *v)
 {
@@ -11,7 +14,7 @@ int cb(int c, char *v)
 int main(int argc, char *argv[])
 {
 	// opt_init("hVPDR");
-	opt_init(NULL);
+	opt_init(opt_all, NULL, prepend, append);
 
 	opt_set_callback('R', cb);
 	opt_set_callback('V', cb);
