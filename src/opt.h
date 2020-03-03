@@ -17,5 +17,6 @@ void opt_help(void);
 int opt_used(int short_name);
 int opt_set(int short_name, char *value);
 char *opt_get(int short_name);
+int opt_get_int(int short_name);
 
 #endif /* OPT_H */

@@ -6,19 +6,34 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include <math.h>
 #include "opt.h"
+
+
+/* instant exit when parsing of an option fails */
+#define OPT_PARSING_FAILED_ACTION() do { opt_quit(); exit(EXIT_FAILURE); } while (0)
+/* return error when parsing of an option fails */
+// #define OPT_PARSING_FAILED_ACTION() do { return -1; } while (0)
+
+#define OPT_IF_GET(CODE) \
+	for (int i = 0; opt_all[i].name; i++) { \
+		if (opts_in_use && !strchr(opts_in_use, opt_all[i].short_name)) { continue; } \
+		if (opt_all[i].short_name == short_name) { CODE; } \
+	}
 
 enum {
 	OPT_FILTER_NONE,
+	OPT_FILTER_STR,
 	OPT_FILTER_INT,
 	OPT_FILTER_NUM,
-	OPT_FILTER_HEX
+	OPT_FILTER_HEX,
 };
 
 struct opt_filter {
 	int type;
 	double min;
 	double max;
+	const char **accept;
 };
 
 struct opt_option {
@@ -31,6 +46,8 @@ struct opt_option {
 	const char *description;
 	struct opt_filter filter;
 };
+
+const char *opt_M_accept[] = { "bitbang", "mpsse", NULL };
 
 struct opt_option opt_all[] = {
 	{ 'h', "help", no_argument, 0, NULL, NULL, "display this help and exit", { 0 } },
@@ -46,11 +63,17 @@ struct opt_option opt_all[] = {
 	},
 	{ 'D', "description", required_argument, 0, NULL, NULL, "usb description (product) to use for opening right device", { 0 } },
 	{ 'S', "serial", required_argument, 0, NULL, NULL, "usb serial to use for opening right device", { 0 } },
-	{ 'I', "interface", required_argument, 0, "1", NULL, "ftx232 interface number, defaults to first", { 0 } },
+	{
+		'I', "interface", required_argument, 0, "1", NULL, "ftx232 interface number, defaults to first",
+		{ OPT_FILTER_INT, 1, 4 }
+	},
 	{ 'U', "usbid", required_argument, 0, NULL, NULL, "usbid to use for opening right device (sysfs format, e.g. 1-2.3)", { 0 } },
 	{ 'R', "reset", no_argument, 0, NULL, NULL, "do usb reset on the device at start", { 0 } },
 	{ 'L', "list", no_argument, 0, NULL, NULL, "list devices that can be found with given parameters", { 0 } },
-	{ 'M', "mode", required_argument, 0, "bitbang", NULL, "set device bitmode, use 'bitbang' or 'mpsse'", { 0 } },
+	{
+		'M', "mode", required_argument, 0, "bitbang", NULL, "set device bitmode, use 'bitbang' or 'mpsse'",
+		{ OPT_FILTER_STR, NAN, NAN, opt_M_accept }
+	},
 	{ 'B', "baudrate", required_argument, 0, NULL, NULL, "set device baudrate, will default to what ever the device is using", { OPT_FILTER_INT, 0, 20e6 } },
 
 	/* ftdi-control only */
@@ -122,17 +145,32 @@ int opt_set_callback(int short_name, int (*callback)(int short_name, char *value
 	return -1;
 }
 
-int opt_parse_single(struct opt_option * opt)
+int opt_parse_single(struct opt_option *opt)
 {
 	/* if help was asked, show and exit immediately */
 	if (opt->short_name == 'h') {
 		opt_help();
-		exit(0);
+		exit(EXIT_SUCCESS);
+	}
+
+	/* if filter has a list of accepted values */
+	if (opt->filter.type != OPT_FILTER_NONE && opt->filter.accept) {
+		int found = 0;
+		for (int i = 0; opt->filter.accept[i]; i++) {
+			if (strcmp(opt->filter.accept[i], optarg) == 0) {
+				found = 1;
+				break;
+			}
+		}
+		if (!found) {
+			fprintf(stderr, "invalid value for option -%c, --%s: %s\n", opt->short_name, opt->name, optarg);
+			OPT_PARSING_FAILED_ACTION();
+		}
 	}
 
 	/* if callback is set */
 	if (opt->callback && opt->callback(opt->short_name, optarg)) {
-		return -1;
+		OPT_PARSING_FAILED_ACTION();
 	}
 
 	/* save value */
@@ -221,41 +259,37 @@ void opt_help(void)
 
 int opt_used(int short_name)
 {
-	for (int i = 0; opt_all[i].name; i++) {
-		if (opts_in_use && !strchr(opts_in_use, opt_all[i].short_name)) {
-			continue;
-		}
-		if (opt_all[i].short_name == short_name) {
-			return opt_all[i].used > 0;
-		}
-	}
+	OPT_IF_GET({
+		return opt_all[i].used > 0;
+	});
 	return 0;
 }
 
 int opt_set(int short_name, char *value)
 {
-	for (int i = 0; opt_all[i].name; i++) {
-		if (opts_in_use && !strchr(opts_in_use, opt_all[i].short_name)) {
-			continue;
-		}
-		if (opt_all[i].short_name == short_name) {
-			opt_all[i].value = strdup(value);
-			opt_all[i].used = -1;
-			return 0;
-		}
-	}
+	OPT_IF_GET({
+		opt_all[i].value = strdup(value);
+		opt_all[i].used = -1;
+		return 0;
+	});
 	return -1;
 }
 
 char *opt_get(int short_name)
 {
-	for (int i = 0; opt_all[i].name; i++) {
-		if (opts_in_use && !strchr(opts_in_use, opt_all[i].short_name)) {
-			continue;
-		}
-		if (opt_all[i].short_name == short_name) {
-			return opt_all[i].value;
-		}
-	}
+	OPT_IF_GET({
+		return opt_all[i].value;
+	});
 	return NULL;
+}
+
+int opt_get_int(int short_name)
+{
+	OPT_IF_GET({
+		if (opt_all[i].used < 1 && !opt_all[i].value) {
+			return 0;
+		}
+		return (int)strtol(opt_all[i].value, NULL, 0);
+	});
+	return 0;
 }

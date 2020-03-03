@@ -1,10 +1,10 @@
 
 BUILD ?= ftdi-bitbang ftdi-control
 CFLAGS += -Os -std=c11 -D_GNU_SOURCE -Wall
-LDFLAGS += 
+LDFLAGS += -lftdi1
 
-ftdi-bitbang_SRC = src/ftdi-bitbang-cmd.c src/opt.c
-ftdi-control_SRC = src/ftdi-control-cmd.c src/opt.c
+ftdi-bitbang_SRC = src/ftdi-bitbang-cmd.c src/opt.c src/ftdic.c
+ftdi-control_SRC = src/ftdi-control-cmd.c src/opt.c src/ftdic.c
 
 # no need to touch things
 BUILDDIR = ./build
