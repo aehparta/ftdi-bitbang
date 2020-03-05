@@ -23,6 +23,7 @@
 	"  -                           read commands from piped or redirected stdin\n" \
 	"\n" \
 	"Options are processed before commands, even those defined after or between commands.\n" \
+	"File read from stdin can also include comments. Comments start with '#' or ';' character and end with line feed.\n" \
 	"\n" \
 	"Examples:\n" \
 	"  ftdi-cfg -L\n" \
@@ -32,6 +33,7 @@
 	"  cat my-ftdi-cfg-commands.txt | ftdi-cfg --usbid=1-6.1.1 init - decode\n" \
 	"\n" \
 	"Last two examples will first initialize eeprom with defaults, then read commands from given file and last print eeprom contents.\n"
+
 
 
 int apply_command(const char *command, const char *value)
