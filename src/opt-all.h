@@ -50,6 +50,7 @@ struct opt_option opt_all[] = {
     { 'W', "serial-len", required_argument, 0, NULL, NULL, "pad serial with randomized ascii letters and numbers to this length (upper case)", { 0 } },
     { 'X', "serial-hex", required_argument, 0, NULL, NULL, "pad serial with randomized hex to this length (upper case)", { 0 } },
     { 'C', "serial-dec", required_argument, 0, NULL, NULL, "pad serial with randomized numbers to this length", { 0 } },
+    { 'F', "fix-broken", no_argument, 0, NULL, NULL, "try to fix broken device with vid:pid set to 0:0 or eeprom checksum gone wild", { 0 } },
 
     /* ftdi-hd44780 only */
     { '4', "d4", required_argument, 0, NULL, NULL, "data pin 4, default pin is 0", { OPT_FILTER_INT, 0, 15 } },

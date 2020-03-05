@@ -16,6 +16,9 @@ static char *ftdic_get_usbid(struct libusb_device *dev);
 /* global common ftdi context holder, only one device cand one interface can be used at once */
 struct ftdi_context *ftdi = NULL;
 
+/* libusb context holder */
+libusb_context *lu_context = NULL;
+
 
 int ftdic_init(void)
 {
@@ -37,8 +40,12 @@ int ftdic_init(void)
 	/* find devices mathing given vid and pid */
 	n = ftdi_usb_find_all(ftdi, &list, opt_get_int('V'), opt_get_int('P'));
 	if (n < 1) {
-		fprintf(stderr, "unable to find any matching device\n");
-		return -1;
+		if (!opt_used('F')) {
+			fprintf(stderr, "unable to find any matching device\n");
+			return -1;
+		} else {
+			return ftdi_usb_open(ftdi, 0, 0) ? -1 : 0;
+		}
 	}
 	/* clone pointer for walking thourgh the list */
 	struct ftdi_device_list *match = list;
@@ -106,6 +113,10 @@ void ftdic_quit(void)
 		ftdi_free(ftdi);
 	}
 	ftdi = NULL;
+	if (lu_context) {
+		libusb_exit(lu_context);
+	}
+	lu_context = NULL;
 }
 
 void ftdic_list(void)
