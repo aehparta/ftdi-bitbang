@@ -17,7 +17,7 @@
 	"  decode                      read eeprom and print decoded information\n" \
 	"                              note: decode after init will fail\n" \
 	"  manufacturer=STRING         write manufacturer string\n" \
-	"  description=STRIGN          write description (product) string\n" \
+	"  description=STRING          write description (product) string\n" \
 	"  serial=STRING               write serial string\n" \
 	"  bus-power=INT               set bus power drawn by the device (100-500 mA)\n" \
 	"  -                           read commands from piped or redirected stdin\n" \
