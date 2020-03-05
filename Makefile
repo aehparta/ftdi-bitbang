@@ -1,10 +1,10 @@
 
 BUILD ?= ftdi-bb ftdi-cfg
-CFLAGS += -Os -std=c11 -D_GNU_SOURCE -Wall
-LDFLAGS += -lftdi1
+CFLAGS += -O0 -g -std=c11 -D_GNU_SOURCE -Wall
+LDFLAGS += -lftdi1 -lusb-1.0
 
-ftdi-bb_SRC = src/ftdi-bb.c src/opt.c src/ftdic.c
-ftdi-cfg_SRC = src/ftdi-cfg.c src/opt.c src/ftdic.c
+ftdi-bb_SRC = src/ftdi-bb.c src/opt.c src/ftdic.c src/arg.c
+ftdi-cfg_SRC = src/ftdi-cfg.c src/opt.c src/ftdic.c src/arg.c
 
 # no need to touch things
 BUILDDIR = ./build

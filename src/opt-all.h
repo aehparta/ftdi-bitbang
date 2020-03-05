@@ -1,11 +1,21 @@
 /*
  * All options used by commands in one simple block.
+ * Not the coolest or cleanest way to do this but works.
  *
- * Only include this file once on one place!
+ * Only include this file once in one place!
  */
 
+#include <stdlib.h>
+#include "ftdic.h"
 #include "opt.h"
 
+
+int opt_L_callback(int short_name, char *value)
+{
+	ftdic_list();
+	opt_quit();
+	exit(EXIT_SUCCESS);
+}
 
 const char *opt_M_accept[] = { "bitbang", "mpsse", NULL };
 
@@ -23,13 +33,13 @@ struct opt_option opt_all[] = {
     },
     { 'D', "description", required_argument, 0, NULL, NULL, "usb description (product) to use for opening right device", { 0 } },
     { 'S', "serial", required_argument, 0, NULL, NULL, "usb serial to use for opening right device", { 0 } },
+    { 'U', "usbid", required_argument, 0, NULL, NULL, "usbid to use for opening right device (sysfs format, e.g. 1-2.3)", { 0 } },
     {
         'I', "interface", required_argument, 0, "1", NULL, "ftx232 interface number, defaults to first",
         { OPT_FILTER_INT, 1, 4 }
     },
-    { 'U', "usbid", required_argument, 0, NULL, NULL, "usbid to use for opening right device (sysfs format, e.g. 1-2.3)", { 0 } },
     { 'R', "reset", no_argument, 0, NULL, NULL, "do usb reset on the device at start", { 0 } },
-    { 'L', "list", no_argument, 0, NULL, NULL, "list devices that can be found with given parameters", { 0 } },
+    { 'L', "list", no_argument, 0, NULL, opt_L_callback, "list devices that can be found with given parameters", { 0 } },
     {
         'M', "mode", required_argument, 0, "bitbang", NULL, "set device bitmode, use 'bitbang' or 'mpsse'",
         { OPT_FILTER_STR, NAN, NAN, opt_M_accept }
@@ -37,16 +47,9 @@ struct opt_option opt_all[] = {
     { 'B', "baudrate", required_argument, 0, NULL, NULL, "set device baudrate, will default to what ever the device is using", { OPT_FILTER_INT, 0, 20e6 } },
 
     /* ftdi-control only */
-    { 'E', "ee-erase", no_argument, 0, NULL, NULL, "erase eeprom, sometimes needed if eeprom has already been initialized", { 0 } },
-    { 'N', "ee-init", no_argument, 0, NULL, NULL, "erase and initialize eeprom with defaults", { 0 } },
-    { 'O', "ee-decode", no_argument, 0, NULL, NULL, "read eeprom and print decoded information", { 0 } },
-    { 'G', "ee-manufacturer", required_argument, 0, NULL, NULL, "write manufacturer string", { 0 } },
-    { 'T', "ee-description", required_argument, 0, NULL, NULL, "write description (product) string", { 0 } },
-    { 'Z', "ee-serial", required_argument, 0, NULL, NULL, "write serial string", { 0 } },
-    { 'W', "ee-serial-len", required_argument, 0, NULL, NULL, "pad serial with randomized ascii letters and numbers to this length (upper case)", { 0 } },
-    { 'X', "ee-serial-hex", required_argument, 0, NULL, NULL, "pad serial with randomized hex to this length (upper case)", { 0 } },
-    { 'C', "ee-serial-dec", required_argument, 0, NULL, NULL, "pad serial with randomized numbers to this length", { 0 } },
-    { 'A', "ee-bus-power", required_argument, 0, NULL, NULL, "bus power drawn by the device (100-500 mA)", { 0 } },
+    { 'W', "serial-len", required_argument, 0, NULL, NULL, "pad serial with randomized ascii letters and numbers to this length (upper case)", { 0 } },
+    { 'X', "serial-hex", required_argument, 0, NULL, NULL, "pad serial with randomized hex to this length (upper case)", { 0 } },
+    { 'C', "serial-dec", required_argument, 0, NULL, NULL, "pad serial with randomized numbers to this length", { 0 } },
 
     /* ftdi-hd44780 only */
     { '4', "d4", required_argument, 0, NULL, NULL, "data pin 4, default pin is 0", { OPT_FILTER_INT, 0, 15 } },

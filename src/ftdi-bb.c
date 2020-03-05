@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include "ftdic.h"
 #include "opt-all.h"
 
 const char *prepend = "help prepend\nyes.";
@@ -19,13 +20,16 @@ int main(int argc, char *argv[])
 	opt_set_callback('R', cb);
 	opt_set_callback('V', cb);
 
-	opt_set('P', "123456");
-
 	opt_parse(argc, argv);
 
 	printf("R was %s\n", opt_used('R') ? "used" : "not used");
 	printf("P: %s\n", opt_get('P'));
+
+
+	ftdic_init();
+
 	
+	ftdic_quit();
 	opt_quit();
 	return 0;
 }

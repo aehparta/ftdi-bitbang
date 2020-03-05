@@ -55,11 +55,16 @@ int opt_init(struct opt_option *o, const char *u, const char *help_prepend, cons
 
 void opt_quit(void)
 {
-	opts_in_use ? free(opts_in_use) : NULL;
+	if (opts_in_use) {
+		free(opts_in_use);
+	}
+	opts_in_use = NULL;
+
 	for (int i = 0; opts[i].name; i++) {
 		if (opts[i].used != 0 && opts[i].value) {
 			free(opts[i].value);
 		}
+		opts[i].value = NULL;
 	}
 }
 
