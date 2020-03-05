@@ -121,6 +121,11 @@ int opt_parse(int argc, char *argv[])
 	/* parse */
 	int index = 0, c;
 	while ((c = getopt_long(argc, argv, shortopts, longopts, &index)) > -1) {
+		/* invalid option */
+		if (c == '?') {
+			exit(EXIT_FAILURE);
+		}
+
 		/* unfortunately this loop is required every time */
 		for (int i = 0; opts[i].name; i++) {
 			if (opts[i].short_name == c && opt_parse_single(&opts[i])) {

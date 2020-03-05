@@ -34,12 +34,12 @@ struct opt_option opt_all[] = {
     { 'D', "description", required_argument, 0, NULL, NULL, "usb description (product) to use for opening right device", { 0 } },
     { 'S', "serial", required_argument, 0, NULL, NULL, "usb serial to use for opening right device", { 0 } },
     { 'U', "usbid", required_argument, 0, NULL, NULL, "usbid to use for opening right device (sysfs format, e.g. 1-2.3)", { 0 } },
+    { 'R', "reset", no_argument, 0, NULL, NULL, "do usb reset on the device at start", { 0 } },
+    { 'L', "list", no_argument, 0, NULL, opt_L_callback, "list devices that can be found with given parameters", { 0 } },
     {
         'I', "interface", required_argument, 0, "1", NULL, "ftx232 interface number, defaults to first",
         { OPT_FILTER_INT, 1, 4 }
     },
-    { 'R', "reset", no_argument, 0, NULL, NULL, "do usb reset on the device at start", { 0 } },
-    { 'L', "list", no_argument, 0, NULL, opt_L_callback, "list devices that can be found with given parameters", { 0 } },
     {
         'M', "mode", required_argument, 0, "bitbang", NULL, "set device bitmode, use 'bitbang' or 'mpsse'",
         { OPT_FILTER_STR, NAN, NAN, opt_M_accept }

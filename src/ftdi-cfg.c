@@ -88,7 +88,6 @@ int apply_command(const char *command, const char *value)
 {
 	struct ftdi_context *ftdi = ftdic_get_context();
 
-	/* read and decode eeprom */
 	if (strcmp(command, "init") == 0 && !value) {
 		/* initialize eeprom to defaults */
 		if (ftdi_eeprom_initdefaults(ftdi, NULL, NULL, NULL)) {
@@ -148,7 +147,6 @@ int main(int argc, char *argv[])
 	if (ftdic_init()) {
 		return EXIT_FAILURE;
 	}
-	// return EXIT_FAILURE;
 	struct ftdi_context *ftdi = ftdic_get_context();
 
 	/* always read eeprom first */

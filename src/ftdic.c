@@ -159,6 +159,75 @@ struct ftdi_context *ftdic_get_context(void)
 	return ftdi;
 }
 
+int ftdic_bb_read_low(void)
+{
+	if (ftdi->bitbang_mode == BITMODE_MPSSE) {
+		uint8_t buf[1] = { 0x81 };
+		ftdi_usb_purge_rx_buffer(ftdi);
+		if (ftdi_write_data(ftdi, &buf[0], 1) != 1) {
+			return -1;
+		}
+		if (ftdi_read_data(ftdi, &buf[0], 1) != 1) {
+			return -1;
+		}
+		return (int)buf[0];
+	} else {
+		uint8_t pins;
+		if (ftdi_read_pins(ftdi, &pins)) {
+			return -1;
+		}
+		return pins;
+	}
+	return -1;
+
+}
+
+int ftdic_bb_read_high(void)
+{
+	/* if device is not in MPSSE mode, it only supports pins through 0-7 */
+	if (ftdi->bitbang_mode == BITMODE_BITBANG) {
+		return -1;
+	}
+
+	uint8_t buf[1] = { 0x83 };
+	ftdi_usb_purge_rx_buffer(ftdi);
+	if (ftdi_write_data(ftdi, &buf[0], 1) != 1) {
+		return -1;
+	}
+	if (ftdi_read_data(ftdi, &buf[0], 1) != 1) {
+		return -1;
+	}
+	return (int)buf[0];
+}
+
+int ftdic_bb_read(void)
+{
+	int h = 0, l = 0;
+	l = ftdic_bb_read_low();
+	/* if device is not in MPSSE mode, it only supports pins through 0-7 */
+	if (ftdi->bitbang_mode == BITMODE_MPSSE) {
+		h = ftdic_bb_read_high();
+	}
+	if (l < 0 || h < 0) {
+		return -1;
+	}
+	return (h << 8) | l;
+}
+
+int ftdic_bb_read_pin(uint8_t pin)
+{
+	if (pin <= 7 && pin >= 0) {
+		return (ftdic_bb_read_low() & (1 << pin)) ? 1 : 0;
+	} else if (pin >= 8 && pin <= 15) {
+		/* if device is not in MPSSE mode, it only supports pins through 0-7 */
+		if (ftdi->bitbang_mode == BITMODE_BITBANG) {
+			return -1;
+		}
+		return (ftdic_bb_read_high() & (1 << (pin - 8))) ? 1 : 0;
+	}
+	return -1;
+}
+
 
 /* internals */
 
