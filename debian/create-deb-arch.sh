@@ -4,24 +4,7 @@
 bash=/bin/bash
 set -a
 
-# you need to change these values
-PACKAGE_AUTHORS="Antti Partanen <aehparta@iki.fi>"
-# examples for section: libs, utils, misc, comm, admin, base
-PACKAGE_SECTION="utils"
-PACKAGE_PRIORITY="optional"
-PACKAGE_NAME="ftdi-bitbang"
-PACKAGE_DESC="bitbang control through FTDI FTx232 chips"
-PACKAGE_VERSION_MAJOR="2"
-PACKAGE_VERSION_MINOR="0"
-PACKAGE_VERSION_MICRO="0"
-PACKAGE_VERSION="$PACKAGE_VERSION_MAJOR.$PACKAGE_VERSION_MINOR.$PACKAGE_VERSION_MICRO"
-
-# binaries/libraries to install
-PACKAGE_BINS="ftdi-bb ftdi-cfg"
-PACKAGE_LIBS=""
-
-# include headers when making package
-PACKAGE_HEADERS=""
+source package.ini
 
 PACKAGE_ARCH=`uname -m`
 
