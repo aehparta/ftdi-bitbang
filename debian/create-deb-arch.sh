@@ -1,0 +1,135 @@
+#!/bin/bash
+# This script builds debian packages.
+
+bash=/bin/bash
+set -a
+
+# you need to change these values
+PACKAGE_AUTHORS="Antti Partanen <aehparta@iki.fi>"
+# examples for section: libs, utils, misc, comm, admin, base
+PACKAGE_SECTION="utils"
+PACKAGE_PRIORITY="optional"
+PACKAGE_NAME="ftdi-bitbang"
+PACKAGE_DESC="bitbang control through FTDI FTx232 chips"
+PACKAGE_VERSION_MAJOR="2"
+PACKAGE_VERSION_MINOR="0"
+PACKAGE_VERSION_MICRO="0"
+PACKAGE_VERSION="$PACKAGE_VERSION_MAJOR.$PACKAGE_VERSION_MINOR.$PACKAGE_VERSION_MICRO"
+
+# binaries/libraries to install
+PACKAGE_BINS="ftdi-bb ftdi-cfg"
+PACKAGE_LIBS=""
+
+# include headers when making package
+PACKAGE_HEADERS=""
+
+PACKAGE_ARCH=`uname -m`
+
+if [ `uname -m` = "x86_64" ]; then
+	PACKAGE_ARCH="amd64"
+else
+	PACKAGE_ARCH="i386"
+fi
+
+ROOT=$PWD
+PACKAGE_BUILD=`cat $ROOT/debian/build`
+
+DEBIAN_ALL=arch/$PACKAGE_ARCH/DEBIAN
+DEBIAN_ARCH=arch/all/DEBIAN
+PKGROOT=$PWD/debian
+PKGDIR="$PKGROOT/$PACKAGE_NAME-$PACKAGE_VERSION-$PACKAGE_BUILD-$PACKAGE_ARCH-deb"
+PKGDIR_SRC=$PKGROOT/$PACKAGE_NAME-$PACKAGE_VERSION-deb-src
+SRCDIR=$PKGDIR_SRC/$PACKAGE_NAME-$PACKAGE_VERSION
+PKGNAME="$PACKAGE_NAME-$PACKAGE_VERSION-$PACKAGE_BUILD-$PACKAGE_ARCH.deb"
+
+# Copy binary package files.
+copy_binpkg_files()
+{
+	echo "** Copying files..."
+	set -e
+
+	# create directories
+	mkdir -p "$PKGDIR/DEBIAN"
+	mkdir -p "$PKGDIR/usr"
+	mkdir -p "$PKGDIR/usr/bin"
+	mkdir -p "$PKGDIR/usr/lib"
+	mkdir -p "$PKGDIR/usr/lib/pkgconfig"
+	mkdir -p "$PKGDIR/usr/share"
+	mkdir -p "$PKGDIR/usr/include"
+	
+	# copy debian package files
+	for suffix in control changelog; do
+		if [ -e $PKGROOT/$DEBIAN_ALL/$suffix.sh ]; then
+			$bash $PKGROOT/$DEBIAN_ALL/$suffix.sh > "$PKGDIR/DEBIAN/$suffix"
+		fi
+		if [ -e $PKGROOT/$DEBIAN_ARCH/$suffix.sh ]; then
+			$bash $PKGROOT/$DEBIAN_ARCH/$suffix.sh > "$PKGDIR/DEBIAN/$suffix"
+		fi
+	done
+	for suffix in copyright preinst postinst postrm prerm; do
+		if [ -e $PKGROOT/$DEBIAN_ALL/$suffix ]; then
+			cp $PKGROOT/$DEBIAN_ALL/$suffix "$PKGDIR/DEBIAN"
+		fi
+		if [ -e $PKGROOT/$DEBIAN_ARCH/$suffix ]; then
+			cp $PKGROOT/$DEBIAN_ARCH/$suffix "$PKGDIR/DEBIAN"
+		fi
+	done
+	
+	
+	# copy project files
+	for libname in $PACKAGE_LIBS; do
+		for suffix in a la so so.0 so.0.0.0; do
+			cp -d $ROOT/$libname.$suffix $PKGDIR/usr/lib/
+		done
+	done
+	
+	for binname in $PACKAGE_BINS; do
+		cp -d $ROOT/$binname $PKGDIR/usr/bin/
+	done
+	
+	# copy include files
+	for suffix in $PACKAGE_HEADERS; do
+		cp $ROOT/src/$suffix $PKGDIR/usr/include/
+	done
+
+	if [ -e $ROOT/src/$PACKAGE_NAME.pc ]; then
+		cp $ROOT/src/$PACKAGE_NAME.pc $PKGDIR/usr/lib/pkgconfig
+	fi
+
+	set +e
+}
+
+echo "** Creating debian package ($PKGNAME)..."
+echo "** Build $PACKAGE_BUILD (reset this by editing ./debian/build)"
+
+rm -rf $PKGDIR
+rm -rf $PKGDIR_SRC
+
+if ! make clean all; then
+	echo "** Error while running make!"
+	exit 1
+fi
+
+if ! copy_binpkg_files; then
+	echo "** Error while copying files!"
+	exit 1
+fi
+
+echo "** Creating binary package..."
+
+if dpkg-deb -b "$PKGDIR" "$PKGNAME"; then
+	echo "** Successfully finished building package."
+else
+	echo "** Error while building package!"
+fi
+
+if [ "$PACKAGES_REMOTE_HOST" != "" ]; then
+    echo "** Releasing package to the wild"
+    ssh "$PACKAGES_REMOTE_HOST" "rm $PACKAGES_REMOTE_PATH/$PACKAGE_NAME-*-$PACKAGE_ARCH.deb"
+    scp "$PKGNAME" "$PACKAGES_REMOTE_HOST:$PACKAGES_REMOTE_PATH"
+    ssh "$PACKAGES_REMOTE_HOST" "cd $PACKAGES_REMOTE_PATH && dpkg-scanpackages . | gzip -9c > Packages.gz"
+fi
+
+let "PACKAGE_BUILD += 1"
+echo $PACKAGE_BUILD > $ROOT/debian/build
+
