@@ -1,0 +1,9 @@
+build/
+debian/ftdi-bitbang*/
+ftdi-bb
+ftdi-cfg
+ftdi-sc
+ftdi-44780
+ftdi-spi
+*.deb
+ftdi-bitbang.sublime-workspace
