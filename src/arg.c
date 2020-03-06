@@ -144,7 +144,9 @@ static int arg_read_stdin(struct arg *arg)
 
 	/* read until next space */
 	ungetc(c, stdin);
-	scanf("%ms", &arg->a);
+	if (scanf("%ms", &arg->a) < 1) {
+		return -1;
+	}
 	arg->next = arg->a;
 
 	return 0;

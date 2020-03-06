@@ -108,10 +108,10 @@ int main(int argc, char *argv[])
 	}
 
 	struct ftdi_context *ftdi = ftdic_get_context();
-	if (strcmp(opt_get('M'), "bitbang") == 0) {
-		ftdi_set_bitmode(ftdi, 0x00, BITMODE_BITBANG);
-	} else {
+	if (opt_used('M')) {
 		ftdi_set_bitmode(ftdi, 0x00, BITMODE_MPSSE);
+	} else {
+		ftdi_set_bitmode(ftdi, 0x00, BITMODE_BITBANG);
 	}
 
 	/* apply arguments */

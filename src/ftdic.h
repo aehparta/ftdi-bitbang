@@ -6,8 +6,8 @@
 #define FTDIC_H
 
 #include <stdint.h>
-#include <libftdi1/ftdi.h>
-#include <libusb-1.0/libusb.h>
+#include <ftdi.h>
+#include <libusb.h>
 
 int ftdic_init(void);
 int ftdic_init_broken(void);
