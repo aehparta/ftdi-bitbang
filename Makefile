@@ -5,8 +5,10 @@ BUILD ?= ftdi-bb ftdi-cfg
 # optimize for speed as default
 OPT ?= s
 
-ftdi-bb_SRC = src/ftdi-bb.c src/opt.c src/ftdic.c src/arg.c
-ftdi-cfg_SRC = src/ftdi-cfg.c src/opt.c src/ftdic.c src/arg.c
+COMMON_SRC = src/opt.c src/ftdic.c src/arg.c src/os.c
+
+ftdi-bb_SRC = src/ftdi-bb.c $(COMMON_SRC)
+ftdi-cfg_SRC = src/ftdi-cfg.c $(COMMON_SRC)
 
 # no need to touch things
 BUILDDIR ?= ./build

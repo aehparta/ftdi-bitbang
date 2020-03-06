@@ -3,11 +3,13 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
 #include "ftdic.h"
 #include "arg.h"
+#include "os.h"
 #include "opt-all.h"
 
 
@@ -28,24 +30,39 @@
 	"  rd                          read pins and print to stdout as dec\n" \
 	"  rb                          read pins and print to stdout as binary\n" \
 	"  rPIN                        read pin and print to stdout\n" \
+	"  d=NUMBER                    delay before executing next command (seconds, float)\n" \
+	"  t=NUMBER                    delay until this many seconds has passed compared to the time of\n" \
+	"                              first command execution\n" \
+	"                              this is uses a busy-while-loop and will consume a lot of cpu to achieve\n" \
+	"                              as much accuracy as possible.\n" \
 	"  -                           read commands from piped or redirected stdin\n" \
 	"\n" \
 	"Options are processed before commands, even those defined after or between commands.\n" \
 	"File read from stdin can also include comments. Comments start with '#' or ';' character and end with line feed.\n"
 
+#define VERBOSE(...) do { if (verbose) { fprintf(stderr, ##__VA_ARGS__); } } while (0)
+int verbose = 0;
+
 
 int apply_command(const char *command, const char *value)
 {
+	static os_time_t t = -1;
 	struct ftdi_context *ftdi = ftdic_get_context();
 
+	/* save time of first command execution */
+	if (t < 0) {
+		t = os_timef();
+	}
+
+	/* which command is it?!? */
 	if (strcmp(command, "io") == 0 && value) {
-		printf("set io hex\n");
+		VERBOSE("set io hex\n");
 	} else if (strcmp(command, "iod") == 0 && value) {
-		printf("set io dec\n");
+		VERBOSE("set io dec\n");
 	} else if (strcmp(command, "w") == 0 && value) {
-		printf("write pins hex\n");
+		VERBOSE("write pins hex\n");
 	} else if (strcmp(command, "wd") == 0 && value) {
-		printf("write pins dec\n");
+		VERBOSE("write pins dec\n");
 	} else if (strcmp(command, "r") == 0 && !value) {
 		/* print hex */
 		int pins = ftdic_bb_read();
@@ -80,6 +97,14 @@ int apply_command(const char *command, const char *value)
 			return -1;
 		}
 		printf("%u\n", pin);
+	} else if (strcmp(command, "d") == 0 && value) {
+		os_time_t delay = atof(value);
+		VERBOSE("delay for %Lf seconds\n", delay);
+		os_sleepf(delay);
+	} else if (strcmp(command, "t") == 0 && value) {
+		os_time_t until = t + atof(value);
+		VERBOSE("delay for %Lf seconds (absolute)\n", until - os_timef());
+		while (until > os_timef());
 	} else {
 		fprintf(stderr, "invalid command and/or value: %s%s%s\n", command, value ? " = " : "", value ? value : "");
 	}
@@ -94,13 +119,14 @@ int main(int argc, char *argv[])
 	atexit(ftdic_quit);
 
 	/* parse options */
-	if (opt_init(opt_all, "h VPDSURL IMB", USAGE, HELP) || opt_parse(argc, argv)) {
+	if (opt_init(opt_all, "h VPDSURL IMB v", USAGE, HELP) || opt_parse(argc, argv)) {
 		return EXIT_FAILURE;
 	}
 	if (argc == optind) {
 		fprintf(stderr, "no arguments given, nothing to do\n");
 		return EXIT_FAILURE;
 	}
+	verbose = opt_used('v');
 
 	/* initialize ftdi */
 	if (ftdic_init()) {

@@ -63,5 +63,8 @@ struct opt_option opt_all[] = {
 	{ 'r', "rw", required_argument, 0, NULL, NULL, "read/write pin, default pin is 5", { OPT_FILTER_INT, 0, 15 } },
 	{ 's', "rs", required_argument, 0, NULL, NULL, "register select pin, default pin is 6", { OPT_FILTER_INT, 0, 15 } },
 
+	/* other */
+	{ 'v', "verbose", no_argument, 0, NULL, NULL, "be verbose by printing extra information to stderr", { 0 } },
+
 	{ 0, 0, 0, 0, 0, 0, 0, { 0 } }
 };
