@@ -36,6 +36,9 @@ LDFLAGS += $(shell pkg-config --libs libftdi1)
 
 all:: $(BUILD)
 
+deb:
+	bash ./debian/create-deb-arch.sh
+
 clean:
 	$(REMOVE) -rf $(BUILDDIR)
 	$(REMOVE) -f $(BUILD)
