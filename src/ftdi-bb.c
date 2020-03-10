@@ -43,6 +43,9 @@
 #define VERBOSE(...) do { if (verbose) { fprintf(stderr, ##__VA_ARGS__); } } while (0)
 int verbose = 0;
 
+uint8_t iol = 0, ioh = 0;
+uint8_t pinsl = 0, pinsh = 0;
+
 
 int apply_command(const char *command, const char *value)
 {
@@ -56,9 +59,21 @@ int apply_command(const char *command, const char *value)
 
 	/* which command is it?!? */
 	if (strcmp(command, "io") == 0 && value) {
-		VERBOSE("set io hex\n");
+		int v = strtoul(value, NULL, 16);
+		iol = v & 0xff;
+		ioh = (v >> 8) & 0xff;
+		if (!opt_used('M')) {
+			ftdi_set_bitmode(ftdi, iol, BITMODE_BITBANG);
+		}
+		VERBOSE("set io hex: %02x\n", iol);
 	} else if (strcmp(command, "iod") == 0 && value) {
 		VERBOSE("set io dec\n");
+		int v = atoi(value);
+		iol = v & 0xff;
+		ioh = (v >> 8) & 0xff;
+		if (!opt_used('M')) {
+			ftdi_set_bitmode(ftdi, iol, BITMODE_BITBANG);
+		}
 	} else if (strcmp(command, "w") == 0 && value) {
 		VERBOSE("write pins hex\n");
 	} else if (strcmp(command, "wd") == 0 && value) {
@@ -71,6 +86,20 @@ int apply_command(const char *command, const char *value)
 			return -1;
 		}
 		ftdi->bitbang_mode == BITMODE_MPSSE ? printf("%04x\n", pins) : printf("%02x\n", pins);
+	} else if (strlen(command) > 1 && command[0] == 'h' && isdigit(command[1])) {
+		int pin = atoi(&command[1]);
+		if (!opt_used('M') && pin >= 0 && pin <= 7) {
+			pinsl |= (1 << pin);
+			ftdi_write_data(ftdi, &pinsl, 1);
+		}
+		VERBOSE("set pins: %02x\n", pinsl);
+	} else if (strlen(command) > 1 && command[0] == 'l' && isdigit(command[1])) {
+		int pin = atoi(&command[1]);
+		if (!opt_used('M') && pin >= 0 && pin <= 7) {
+			pinsl &= ~(1 << pin);
+			ftdi_write_data(ftdi, &pinsl, 1);
+		}
+		VERBOSE("set pins: %02x\n", pinsl);
 	} else if (strcmp(command, "rd") == 0 && !value) {
 		/* print dec */
 		int pins = ftdic_bb_read();
@@ -141,7 +170,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* apply arguments */
-	struct arg *arg = arg_init(argc - optind, &argv[optind], NULL, "=", "-", "#;");
+	struct arg *arg = arg_init(argc - optind, &argv[optind], ",", "=", "-", "#;");
 	while (arg_parse(arg) > 0) {
 		const char *c = arg_name(arg);
 		const char *v = arg_value(arg);
