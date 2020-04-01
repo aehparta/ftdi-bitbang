@@ -24,8 +24,8 @@
 	"  iPIN                        set as input\n" \
 	"  w=VALUE                     write pin states, value is 16-bit hex, only lower 8-bits are used in bitbang mode\n" \
 	"  wd=VALUE                    write pin states, value is 16-bit dec, only lower 8-bits are used in bitbang mode\n" \
-	"  hPIN                        set pin high\n" \
-	"  lPIN                        set pin low\n" \
+	"  hPIN                        set pin high and as output\n" \
+	"  lPIN                        set pin low and as output\n" \
 	"  r                           read pins and print to stdout as hex\n" \
 	"  rd                          read pins and print to stdout as dec\n" \
 	"  rb                          read pins and print to stdout as binary\n" \
@@ -37,14 +37,13 @@
 	"                              as much accuracy as possible.\n" \
 	"  -                           read commands from piped or redirected stdin\n" \
 	"\n" \
-	"Options are processed before commands, even those defined after or between commands.\n" \
+	"Options are processed before commands.\n" \
 	"File read from stdin can also include comments. Comments start with '#' or ';' character and end with line feed.\n"
 
 #define VERBOSE(...) do { if (verbose) { fprintf(stderr, ##__VA_ARGS__); } } while (0)
 int verbose = 0;
 
-uint8_t iol = 0, ioh = 0;
-uint8_t pinsl = 0, pinsh = 0;
+int pins;
 
 
 int apply_command(const char *command, const char *value)
@@ -59,64 +58,74 @@ int apply_command(const char *command, const char *value)
 
 	/* which command is it?!? */
 	if (strcmp(command, "io") == 0 && value) {
+		/* set io direction from hex string */
 		int v = strtoul(value, NULL, 16);
-		iol = v & 0xff;
-		ioh = (v >> 8) & 0xff;
-		if (!opt_used('M')) {
-			ftdi_set_bitmode(ftdi, iol, BITMODE_BITBANG);
-		}
-		VERBOSE("set io hex: %02x\n", iol);
+		ftdic_bb_dir_io(v);
+		VERBOSE("set io dir hex: %02x\n", v);
 	} else if (strcmp(command, "iod") == 0 && value) {
-		VERBOSE("set io dec\n");
+		/* set io direction from dec string */
 		int v = atoi(value);
-		iol = v & 0xff;
-		ioh = (v >> 8) & 0xff;
-		if (!opt_used('M')) {
-			ftdi_set_bitmode(ftdi, iol, BITMODE_BITBANG);
-		}
+		ftdic_bb_dir_io(v);
+		VERBOSE("set io dir dec: %u\n", v);
+	} else if (strlen(command) > 1 && command[0] == 'o' && isdigit(command[1])) {
+		/* set single pin as output */
+		int pin = atoi(&command[1]);
+		ftdic_bb_dir_io_pin(pin, 1);
+	} else if (strlen(command) > 1 && command[0] == 'i' && isdigit(command[1])) {
+		/* set single pin as input */
+		int pin = atoi(&command[1]);
+		ftdic_bb_dir_io_pin(pin, 0);
 	} else if (strcmp(command, "w") == 0 && value) {
-		VERBOSE("write pins hex\n");
+		/* write pins from hex string */
+		int v = strtoul(value, NULL, 16);
+		ftdic_bb_set_pins(v);
+		VERBOSE("write pins hex: %02x\n", v);
 	} else if (strcmp(command, "wd") == 0 && value) {
-		VERBOSE("write pins dec\n");
+		/* write pins from dec string */
+		int v = atoi(value);
+		ftdic_bb_set_pins(v);
+		VERBOSE("write pins dec: %u\n", v);
+	} else if (strlen(command) > 1 && command[0] == 'h' && isdigit(command[1])) {
+		/* set single pin high */
+		int pin = atoi(&command[1]);
+		if (!ftdic_bb_set_pin(pin, 1)) {
+			VERBOSE("set pin #%u high\n", pin);
+		} else {
+			fprintf(stderr, "invalid pin high command: %s\n", command);
+		}
+	} else if (strlen(command) > 1 && command[0] == 'l' && isdigit(command[1])) {
+		/* set single pin low */
+		int pin = atoi(&command[1]);
+		if (!ftdic_bb_set_pin(pin, 0)) {
+			VERBOSE("set pin #%u low\n", pin);
+		} else {
+			fprintf(stderr, "invalid pin low command: %s\n", command);
+		}
 	} else if (strcmp(command, "r") == 0 && !value) {
-		/* print hex */
-		int pins = ftdic_bb_read();
-		if (pins < 0) {
+		/* read pin states and print as hex */
+		int v = ftdic_bb_read();
+		if (v < 0) {
 			fprintf(stderr, "failed reading pins\n");
 			return -1;
 		}
-		ftdi->bitbang_mode == BITMODE_MPSSE ? printf("%04x\n", pins) : printf("%02x\n", pins);
-	} else if (strlen(command) > 1 && command[0] == 'h' && isdigit(command[1])) {
-		int pin = atoi(&command[1]);
-		if (!opt_used('M') && pin >= 0 && pin <= 7) {
-			pinsl |= (1 << pin);
-			ftdi_write_data(ftdi, &pinsl, 1);
-		}
-		VERBOSE("set pins: %02x\n", pinsl);
-	} else if (strlen(command) > 1 && command[0] == 'l' && isdigit(command[1])) {
-		int pin = atoi(&command[1]);
-		if (!opt_used('M') && pin >= 0 && pin <= 7) {
-			pinsl &= ~(1 << pin);
-			ftdi_write_data(ftdi, &pinsl, 1);
-		}
-		VERBOSE("set pins: %02x\n", pinsl);
+		ftdi->bitbang_mode == BITMODE_MPSSE ? printf("%04x\n", v) : printf("%02x\n", v);
 	} else if (strcmp(command, "rd") == 0 && !value) {
 		/* print dec */
-		int pins = ftdic_bb_read();
-		if (pins < 0) {
+		int v = ftdic_bb_read();
+		if (v < 0) {
 			fprintf(stderr, "failed reading pins\n");
 			return -1;
 		}
-		printf("%u\n", pins);
+		printf("%u\n", v);
 	} else if (strcmp(command, "rb") == 0 && !value) {
 		/* print binary */
-		int pins = ftdic_bb_read();
-		if (pins < 0) {
+		int v = ftdic_bb_read();
+		if (v < 0) {
 			fprintf(stderr, "failed reading pins\n");
 			return -1;
 		}
 		for (int i = 0x8000; i > 0; i = i >> 1) {
-			printf("%u", pins & i ? 1 : 0);
+			printf("%u", v & i ? 1 : 0);
 		}
 		printf("\n");
 	} else if (strlen(command) > 1 && command[0] == 'r' && isdigit(command[1])) {
@@ -162,6 +171,14 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	/* read pin states */
+	pins = ftdic_bb_read();
+	if (pins < 0) {
+		fprintf(stderr, "failed reading initial pin states\n");
+		return EXIT_FAILURE;
+	}
+
+	/* set bitmode */
 	struct ftdi_context *ftdi = ftdic_get_context();
 	if (opt_used('M')) {
 		ftdi_set_bitmode(ftdi, 0x00, BITMODE_MPSSE);
@@ -176,6 +193,9 @@ int main(int argc, char *argv[])
 		const char *v = arg_value(arg);
 		if (apply_command(c, v)) {
 			return EXIT_FAILURE;
+		}
+		if (!arg_has_sepsa(arg)) {
+			ftdic_bb_flush();
 		}
 	}
 	arg_free(arg);

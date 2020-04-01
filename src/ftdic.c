@@ -13,11 +13,16 @@
 static char *ftdic_get_usbid(struct libusb_device *dev);
 
 
-/* global common ftdi context holder, only one device cand one interface can be used at once */
-struct ftdi_context *ftdi = NULL;
+/* global common ftdi context holder, only one device and one interface can be used at once */
+static struct ftdi_context *ftdi = NULL;
+
+/* global io direction state and pin state */
+static uint16_t io_dir = 0x0000;
+static bool io_dir_changed = true;
+static uint16_t io_pins = 0x0000;
 
 /* libusb context holder */
-libusb_context *lu_context = NULL;
+static libusb_context *lu_context = NULL;
 
 
 int ftdic_init(void)
@@ -138,7 +143,7 @@ void ftdic_list(void)
 		return;
 	}
 
-	printf("usb id     serial     description          manufacturer\n");
+	printf("usb id     serial     description                    manufacturer\n");
 	for (i = 0; i < n; i++, list = list->next) {
 		/* stupid static buffers, don't really care in this case */
 		char m[1024], d[1024], s[1024];
@@ -147,7 +152,7 @@ void ftdic_list(void)
 		memset(s, 0, 1024);
 
 		ftdi_usb_get_strings(ftdi, list->dev, m, 1024, d, 1024, s, 1024);
-		printf("%-10s %-10s %-20s %-20s\n", ftdic_get_usbid(list->dev), s, d, m);
+		printf("%-10s %-10s %-30s %s\n", ftdic_get_usbid(list->dev), s, d, m);
 	}
 
 	ftdi_list_free(&list);
@@ -228,6 +233,80 @@ int ftdic_bb_read_pin(uint8_t pin)
 	return -1;
 }
 
+int ftdic_bb_dir_io(uint16_t dir)
+{
+	io_dir = dir;
+	if (io_dir != dir) {
+		io_dir_changed = true;
+	}
+	return 0;
+}
+
+int ftdic_bb_dir_io_pin(uint8_t pin, bool out)
+{
+	if (!opt_used('M') && pin > 7) {
+		return -1;
+	} else if (pin < 0 || pin > 15) {
+		return -1;
+	}
+
+	uint16_t io_dir_old = io_dir;
+
+	if (out) {
+		io_dir |= (1 << pin);
+	} else {
+		io_dir &= ~(1 << pin);
+	}
+
+	if (io_dir != io_dir_old) {
+		io_dir_changed = true;
+	}
+
+	return 0;
+}
+
+int ftdic_bb_set_pins(uint16_t pins)
+{
+	io_pins = pins;
+	return 0;
+}
+
+int ftdic_bb_set_pin(uint8_t pin, bool high)
+{
+	if (!opt_used('M') && pin > 7) {
+		return -1;
+	} else if (pin < 0 || pin > 15) {
+		return -1;
+	}
+
+	if (high) {
+		io_pins |= (1 << pin);
+	} else {
+		io_pins &= ~(1 << pin);
+	}
+	
+	/* also set as output */
+	ftdic_bb_dir_io_pin(pin, 1);
+
+	return 0;
+}
+
+int ftdic_bb_flush(void)
+{
+	if (!opt_used('M')) {
+		/* only set direction of pins if change occured */
+		if (io_dir_changed) {
+			ftdi_set_bitmode(ftdi, io_dir & 0xff, BITMODE_BITBANG);
+		}
+		/* always write pin states, even if no change */
+		uint8_t pins = io_pins & 0xff;
+		ftdi_write_data(ftdi, &pins, 1);
+	}
+
+	io_dir_changed = false;
+
+	return 0;
+}
 
 /* internals */
 

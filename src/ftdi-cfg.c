@@ -22,7 +22,7 @@
 	"  bus-power=INT               set bus power drawn by the device (100-500 mA)\n" \
 	"  -                           read commands from piped or redirected stdin\n" \
 	"\n" \
-	"Options are processed before commands, even those defined after or between commands.\n" \
+	"Options are processed before commands.\n" \
 	"File read from stdin can also include comments. Comments start with '#' or ';' character and end with line feed.\n" \
 	"\n" \
 	"Examples:\n" \

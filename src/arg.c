@@ -53,7 +53,7 @@ int arg_parse(struct arg *arg)
 		if (arg->using_stdin != 1) {
 			arg->i++;
 		}
-		arg->was_sepsa = 0;
+		arg->has_sepsa = 0;
 		return arg_parse(arg);
 	}
 
@@ -85,8 +85,8 @@ int arg_parse(struct arg *arg)
 
 	/* if arguments inside argument separator is defined */
 	if (arg->sepsa) {
-		arg->was_sepsa = arg->next != arg->a;
 		arg->last_name = strsep(&arg->next, arg->sepsa);
+		arg->has_sepsa = arg->next != NULL;
 	} else {
 		arg->last_name = arg->a;
 		arg->next = NULL;
@@ -113,9 +113,9 @@ const char *arg_value(struct arg *arg)
 	return arg->last_value;
 }
 
-int arg_was_sepsa(struct arg *arg)
+int arg_has_sepsa(struct arg *arg)
 {
-	return arg->was_sepsa;
+	return arg->has_sepsa;
 }
 
 

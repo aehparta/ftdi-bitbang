@@ -25,7 +25,7 @@ struct arg {
 	char *last_name;
 	char *last_value;
 	char *next;
-	int was_sepsa;
+	int has_sepsa;
 };
 
 struct arg *arg_init(int argc, char *argv[], const char *sepsa, const char *sepsv, const char *stdina, const char *stdincc);
@@ -36,7 +36,7 @@ int arg_parse(struct arg *arg);
 const char *arg_name(struct arg *arg);
 const char *arg_value(struct arg *arg);
 
-int arg_was_sepsa(struct arg *arg);
+int arg_has_sepsa(struct arg *arg);
 
 #ifdef __cplusplus
 }
