@@ -102,12 +102,12 @@ int ftdic_init(void)
 		ftdi_set_bitmode(ftdi, 0x00, BITMODE_RESET);
 	}
 
-	/* set bitmode */
-	// if (strcmp(opt_get('M'), "mpsse") == 0) {
-	// 	ftdi_set_bitmode(ftdi, 0x00, BITMODE_MPSSE);
-	// } else {
-	// 	ftdi_set_bitmode(ftdi, 0x00, BITMODE_BITBANG);
-	// }
+	/* set baudrate */
+	int baudrate = opt_get_int('B');
+	if (baudrate > 0 && ftdi_set_baudrate(ftdi, baudrate)) {
+		fprintf(stderr, "failed to set baudrate: %s\n", ftdi_get_error_string(ftdi));
+		return -1;
+	}
 
 	return 0;
 }
@@ -284,7 +284,7 @@ int ftdic_bb_set_pin(uint8_t pin, bool high)
 	} else {
 		io_pins &= ~(1 << pin);
 	}
-	
+
 	/* also set as output */
 	ftdic_bb_dir_io_pin(pin, 1);
 
