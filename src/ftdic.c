@@ -7,6 +7,7 @@
 #include <string.h>
 #include "ftdic.h"
 #include "opt.h"
+#include "os.h"
 
 
 /* internal functions */
@@ -18,7 +19,7 @@ static struct ftdi_context *ftdi = NULL;
 
 /* global io direction state and pin state */
 static uint16_t io_dir = 0x0000;
-static bool io_dir_changed = true;
+static int io_dir_changed = -1;
 static uint16_t io_pins = 0x0000;
 
 /* libusb context holder */
@@ -103,11 +104,19 @@ int ftdic_init(void)
 	}
 
 	/* set baudrate */
-	int baudrate = opt_get_int('B');
+	int baudrate = opt_get_int('B') / 2.5;
 	if (baudrate > 0 && ftdi_set_baudrate(ftdi, baudrate)) {
 		fprintf(stderr, "failed to set baudrate: %s\n", ftdi_get_error_string(ftdi));
 		return -1;
 	}
+
+	/* set chunk sizes */
+	// ftdi_write_data_set_chunksize(ftdi, 1);
+	// ftdi_read_data_set_chunksize(ftdi, 1);
+	// ftdi_set_latency_timer(ftdi, 1);
+	// unsigned char c;
+	// ftdi_get_latency_timer(ftdi, &c);
+	// printf("l %d\n", (int)c);
 
 	return 0;
 }
@@ -237,14 +246,14 @@ int ftdic_bb_dir_io(uint16_t dir)
 {
 	io_dir = dir;
 	if (io_dir != dir) {
-		io_dir_changed = true;
+		io_dir_changed = io_dir_changed >= 0 ? 1 : -1;
 	}
 	return 0;
 }
 
 int ftdic_bb_dir_io_pin(uint8_t pin, bool out)
 {
-	if (!opt_used('M') && pin > 7) {
+	if (pin > 7 && !opt_used('M')) {
 		return -1;
 	} else if (pin < 0 || pin > 15) {
 		return -1;
@@ -259,7 +268,7 @@ int ftdic_bb_dir_io_pin(uint8_t pin, bool out)
 	}
 
 	if (io_dir != io_dir_old) {
-		io_dir_changed = true;
+		io_dir_changed = io_dir_changed >= 0 ? 1 : -1;
 	}
 
 	return 0;
@@ -273,7 +282,7 @@ int ftdic_bb_set_pins(uint16_t pins)
 
 int ftdic_bb_set_pin(uint8_t pin, bool high)
 {
-	if (!opt_used('M') && pin > 7) {
+	if (pin > 7 && !opt_used('M')) {
 		return -1;
 	} else if (pin < 0 || pin > 15) {
 		return -1;
@@ -303,7 +312,7 @@ int ftdic_bb_flush(void)
 		ftdi_write_data(ftdi, &pins, 1);
 	}
 
-	io_dir_changed = false;
+	io_dir_changed = 0;
 
 	return 0;
 }

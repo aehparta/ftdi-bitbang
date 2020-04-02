@@ -240,6 +240,60 @@ static int opt_parse_single(struct opt_option *opt)
 		}
 	}
 
+	/* if filter type is number */
+	if (opt->filter.type == OPT_FILTER_NUM) {
+		char *p = NULL;
+		double v = strtod(optarg, &p);
+		if (strlen(p) > 0) {
+			fprintf(stderr, "invalid numeric value for option -%c, --%s: %s\n", opt->short_name, opt->name, optarg);
+			OPT_PARSING_FAILED_ACTION();
+		}
+		if (v < opt->filter.min) {
+			fprintf(stderr, "too small value for option -%c, --%s: %s (min: %lf)\n", opt->short_name, opt->name, optarg, opt->filter.min);
+			OPT_PARSING_FAILED_ACTION();
+		}
+		if (v > opt->filter.max) {
+			fprintf(stderr, "too large value for option -%c, --%s: %s (max: %lf)\n", opt->short_name, opt->name, optarg, opt->filter.max);
+			OPT_PARSING_FAILED_ACTION();
+		}
+	}
+
+	/* if filter type is int */
+	if (opt->filter.type == OPT_FILTER_INT) {
+		char *p = NULL;
+		long int v = strtol(optarg, &p, 10);
+		if (strlen(p) > 0) {
+			fprintf(stderr, "invalid integer value for option -%c, --%s: %s\n", opt->short_name, opt->name, optarg);
+			OPT_PARSING_FAILED_ACTION();
+		}
+		if (v < opt->filter.min) {
+			fprintf(stderr, "too small value for option -%c, --%s: %s (min: %ld)\n", opt->short_name, opt->name, optarg, (long int)opt->filter.min);
+			OPT_PARSING_FAILED_ACTION();
+		}
+		if (v > opt->filter.max) {
+			fprintf(stderr, "too large value for option -%c, --%s: %s (max: %ld)\n", opt->short_name, opt->name, optarg, (long int)opt->filter.max);
+			OPT_PARSING_FAILED_ACTION();
+		}
+	}
+
+	/* if filter type is hex */
+	if (opt->filter.type == OPT_FILTER_HEX) {
+		char *p = NULL;
+		long int v = strtol(optarg, &p, 16);
+		if (strlen(p) > 0) {
+			fprintf(stderr, "invalid hex value for option -%c, --%s: %s\n", opt->short_name, opt->name, optarg);
+			OPT_PARSING_FAILED_ACTION();
+		}
+		if (v < opt->filter.min) {
+			fprintf(stderr, "too small value for option -%c, --%s: %s (min: 0x%lx)\n", opt->short_name, opt->name, optarg, (long int)opt->filter.min);
+			OPT_PARSING_FAILED_ACTION();
+		}
+		if (v > opt->filter.max) {
+			fprintf(stderr, "too large value for option -%c, --%s: %s (max: 0x%lx)\n", opt->short_name, opt->name, optarg, (long int)opt->filter.max);
+			OPT_PARSING_FAILED_ACTION();
+		}
+	}
+
 	/* if callback is set */
 	if (opt->callback && opt->callback(opt->short_name, optarg)) {
 		OPT_PARSING_FAILED_ACTION();

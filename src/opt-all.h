@@ -17,8 +17,6 @@ int opt_L_callback(int short_name, char *value)
 	exit(EXIT_SUCCESS);
 }
 
-const char *opt_M_accept[] = { "bitbang", "mpsse", NULL };
-
 struct opt_option opt_all[] = {
 	{ 'h', "help", no_argument, 0, NULL, NULL, "display this help and exit", { 0 } },
 	{
@@ -46,7 +44,14 @@ struct opt_option opt_all[] = {
 		"cannot be used with FT4232H since it only exposes lower pins",
 		{ 0 }
 	},
-	{ 'B', "baudrate", required_argument, 0, NULL, NULL, "set device baudrate, will default to what ever the device is using", { OPT_FILTER_INT, 0, 20e6 } },
+	{
+		'B', "baudrate", required_argument, 0, "1000000", NULL,
+		"set device baudrate, will default 1 MHz\n"
+		"changing this does not currently have any benefits and output\n"
+		"frequency is something whatever it is in reality\n"
+		"(maybe later when I figure out a fix)\n",
+		{ OPT_FILTER_INT, 0, 20e6 }
+	},
 
 	/* ftdi-control only */
 	{ 'W', "serial-len", required_argument, 0, NULL, NULL, "pad serial with randomized ascii letters and numbers to this length (upper case)", { 0 } },

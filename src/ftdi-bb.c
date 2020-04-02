@@ -49,7 +49,6 @@ int pins;
 int apply_command(const char *command, const char *value)
 {
 	static os_time_t t = -1;
-	struct ftdi_context *ftdi = ftdic_get_context();
 
 	/* save time of first command execution */
 	if (t < 0) {
@@ -108,7 +107,7 @@ int apply_command(const char *command, const char *value)
 			fprintf(stderr, "failed reading pins\n");
 			return -1;
 		}
-		ftdi->bitbang_mode == BITMODE_MPSSE ? printf("%04x\n", v) : printf("%02x\n", v);
+		opt_used('M') ? printf("%04x\n", v) : printf("%02x\n", v);
 	} else if (strcmp(command, "rd") == 0 && !value) {
 		/* print dec */
 		int v = ftdic_bb_read();
@@ -176,14 +175,6 @@ int main(int argc, char *argv[])
 	if (pins < 0) {
 		fprintf(stderr, "failed reading initial pin states\n");
 		return EXIT_FAILURE;
-	}
-
-	/* set bitmode */
-	struct ftdi_context *ftdi = ftdic_get_context();
-	if (opt_used('M')) {
-		ftdi_set_bitmode(ftdi, 0x00, BITMODE_MPSSE);
-	} else {
-		ftdi_set_bitmode(ftdi, 0x00, BITMODE_BITBANG);
 	}
 
 	/* apply arguments */
