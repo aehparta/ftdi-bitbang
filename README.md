@@ -2,6 +2,8 @@
 
 ***NOTE:*** Current master branch (version 1) will not get any updates anymore. I am working on version 2 of these tools since I got fed up with the hard maintainability of the old code written over last decade. I will release the new version to master branch when I am happy with the new code.
 
+***UPDATE (2022-05):*** v2 was in good progress but I have been busy with other things, maybe someday it is finished
+
 ## Command line tools
 
 * ftdi-bitbang
