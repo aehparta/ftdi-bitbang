@@ -22,7 +22,7 @@ PACKAGE_LIBS="libftdi-bitbang libftdi-hd44780 libftdi-spi"
 PACKAGE_BUILD=`cat debian/build`
 
 # libraries/binaries to be checked
-PKGLIBSADD="libftdi1:libftdi1 sdl2:sdl2"
+PKGLIBSADD="libftdi1:libftdi1"
 LIBSADD=""
 BINSCHECK="pkg-config:--version"
 
